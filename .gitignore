@@ -1,0 +1,10 @@
+*.ipynb_checkpoints*
+*_Store*
+*__pycache__*
+*.vscode*
+*_deprecated.*
+*predictions/*
+*.fasta*
+*seqvec/*
+*scripts/*
+*custom_model*
