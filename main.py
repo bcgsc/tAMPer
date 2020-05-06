@@ -9,8 +9,8 @@ import tamper
 
 DEFAULT_SEQVEC_PATH = "seqvec/uniref50_v2" # The default path of seqvec pretrained model, change as necessary.
 HELP_TEXT = '''
-Use the 'train' mode to input your own positive and negative sequences, and train our model on your sequences.
-Use the 'predict' mode to get predictions for your test set. Make sure to have labels in your fasta file, for downstream analysis and statistics.
+Use the 'train' mode to input your own positive and negative sequences, and train our models on your sequences.
+Use the 'predict' mode to get predictions for your test set. Make sure to have labels in your fasta file, for personal downstream analysis and statistics.
 '''
 
 def read_fasta(filename):
@@ -24,7 +24,8 @@ def read_fasta(filename):
 
 def check_seqvec_path(args):
     if not os.path.isdir('./{}'.format(args.seqvec_path)):
-        print("Please provide a valid seqvec trained model path (--seqvec_path). Consider adding the model under seqvec/uniref50_v2 for simplicity.")
+        print('Please provide a valid seqvec trained model path (--seqvec_path).'+
+            'Consider adding the model under seqvec/uniref50_v2 for simplicity (default value).')
         return 0
     else: print("Using SeqVec model path: {}".format(args.seqvec_path))
 
@@ -39,7 +40,11 @@ def train(args):
     negative_seqs = read_fasta(neg_filename)
 
     check_seqvec_path(args)
-    X_train, y_train = tamper.train_embed(positive_seqs, negative_seqs, args.seqvec_path)
+
+    X_train, y_train = tamper.embed(positive_seqs, negative_seqs, args.seqvec_path)
+    tamper.train(X_train, y_train)
+
+
     model = tamper.get_model()
     # print("custom_model == None: {}".format(args.custom_model ==  None))
     if args.custom_model != None:
@@ -49,22 +54,21 @@ def train(args):
         model = custom_model.get_model()
     tamper.train(model, X_train, y_train, args.name)
     # print(args)
-    if args.pca_2d:
-        import visualizations
-        visualizations.plot_PCA(X_train,y_train)
 
 def predict(args):
     if args.sequences == None:
         print("Please enter a fasta file of sequences for prediction.")
         return 0
     sequences_filename = args.sequences
-    seqs = read_fasta(sequences_filename)
+    input_sequences = read_fasta(sequences_filename)
     check_seqvec_path(args)
-    X_test = tamper.seqs_embed(seqs, args.seqvec_path)
-    if not os.path.isfile('./models/{}.sav'.format(args.model_name)):
-        print("Please provide a valid saved model path to use for prediction.")
-        return 0
-    tamper.predict(args.model_name, X_test, seqs)
+
+    # TODO(figalit): Have correct conversion and predictions. 
+    # X_test = tamper.seqs_embed(seqs, args.seqvec_path)
+    # if not os.path.isfile('./models/{}.sav'.format(args.model_name)):
+    #     print("Please provide a valid saved model path to use for prediction.")
+    #     return 0
+    # tamper.predict(args.model_name, X_test, seqs)
 
 def argparser():
     # Create the parser.
@@ -76,22 +80,24 @@ def argparser():
     my_parser.add_argument("mode", type=str, help="Train or predict mode.", default="train")
     my_parser.add_argument("--pos", type=str, help="Positive training data fasta file.")
     my_parser.add_argument("--neg", type=str, help="Negative training data fasta file.")
-    my_parser.add_argument("--name", type=str, help="A name for the model to be trained.", default="trained_model")
-    my_parser.add_argument("--custom_model", type=str, help="Path to a python file with a classification model definition under a get_model function.")
-    my_parser.add_argument("--seqvec_path", type=str, help="Path to trained seqvec model (.../uniref50_v2).", default=DEFAULT_SEQVEC_PATH)
-    my_parser.add_argument("--pca_2d", type=bool, help="Whether or not to display PCA dimensionality reduction to 2 dimensions.", default=False)
+    my_parser.add_argument("--name", type=str, help="A name for the model to be trained.", default="new_trained_model")
+    my_parser.add_argument("--seqvec_path", type=str, 
+        help="Path to trained seqvec model (.../uniref50_v2). Add file directory of where your SeqVec model lies.", 
+        default=DEFAULT_SEQVEC_PATH)
 
     # predict mode command line options.
     my_parser.add_argument("--sequences", type=str, help="Custom fasta file for prediction using a saved model.")
-    my_parser.add_argument("--model_name", type=str, help="Name of the model to use for predictions. Model should be under models/ dir.", default="tamper_saved_model")
+    my_parser.add_argument("--model_name", type=str, 
+        help="Name of the directory where models to be ensembled for prediction are stored. Directory should be under models/ dir.", default="tAMPer")
+
     args = my_parser.parse_args()
     return args
 
 def main():
     """
-    There are two main modes in Toxoria. 
+    There are two main modes in tAMPer. 
     'train' is used for training custom data on the model.
-    'predict' is used for prediction of data.
+    'predict' is used for prediction on input data.
     """
     args = argparser()
     mode = args.mode

@@ -1,257 +1,197 @@
 """
-Date: 2020-02-26
+Date: 2020-02-27
 Author: figalit (github.com/figalit)
 
-This file is almost fully adapted for use from the seqvec_embedder at the Github repo: https://github.com/mheinzinger/SeqVec
+Adapted mostly from the seqvec_embedder.py from the SeqVec Github page.
 """
+
 import argparse
 from pathlib import Path
 
+import pandas as pd
 import numpy as np
 import torch
 from allennlp.commands.elmo import ElmoEmbedder
 
-def merge_two_dicts(x, y):
-    z = x.copy()   # start with x's keys and values
-    z.update(y)    # modifies z with y's keys and values & returns None
-    return z
+MAX_CHARS = 15000
+EMB_LEN = 1024
+MODEL_DIR = '/projects/btl/ftaho/toxic_amps/seqvec/uniref50_v2/'
+CPU = False
 
-def get_elmo_model( model_dir, cpu, verbose ):
+def get_elmo_model():
+    model_dir = Path(MODEL_DIR)
     weights_path = model_dir / 'weights.hdf5'
     options_path = model_dir / 'options.json'
 
     # if no pre-trained model is available, yet --> download it
     if not (weights_path.exists() and options_path.exists()):
-        if verbose: 
-            print('No existing model found. Start downloading pre-trained SeqVec (~360MB)...')
+        print('No existing model found. Start downloading pre-trained SeqVec (~360MB)...')
         import urllib.request
-        Path.mkdir(model_dir)
+        Path.mkdir(MODEL_DIR)
         repo_link    = 'http://rostlab.org/~deepppi/embedding_repo/embedding_models/seqvec'
         options_link = repo_link +'/options.json'
         weights_link = repo_link +'/weights.hdf5'
         urllib.request.urlretrieve( options_link, options_path )
         urllib.request.urlretrieve( weights_link, weights_path )
 
-    cuda_device = 0 if torch.cuda.is_available() and not cpu else -1
-    return ElmoEmbedder( weight_file=weights_path, options_file=options_path, cuda_device=cuda_device )
-        
+    cuda_device = 0 if torch.cuda.is_available() and not CPU else -1
+    return ElmoEmbedder( weight_file=weights_path, options_file=options_path, cuda_device=cuda_device)
 
+def process_embedding(embedding):
+    embedding = torch.tensor(embedding)
+    embedding = embedding.sum(dim=0)
+    embedding = embedding.mean(dim=0) # for whole protein
+    return embedding.cpu().detach().numpy()
 
-def read_fasta( fasta_path, split_char, id_field ):
-    '''
-        Reads in fasta file containing multiple sequences.
-        Returns dictionary of holding multiple sequences or only single 
-        sequence, depending on input file.
-    '''
-    # {seq_id: sequence}
+def process_embedding_per_residue(embedding):
+    embedding = torch.tensor(embedding)
+    embedding = embedding.sum(dim=0)
+    return embedding.cpu().detach().numpy()
+
+def get_sequences(csvfile):
+    """
+    Given a CSV file of sequence,label, return a dict of id to sequence, where id is assigned acc. to order."
+    """
     sequences = dict()
-    with open( fasta_path, 'r' ) as fasta_f:
-        for line in fasta_f:
-            # get uniprot ID from header and create new entry
-            if line.startswith('>'):
-                uniprot_id = line.replace('>', '').strip().split(split_char)[id_field]
-                sequences[ uniprot_id ] = ''
-            else:
-                # repl. all whie-space chars and join seqs spanning multiple lines
-                sequences[ uniprot_id ] += ''.join( line.split() ).upper()
-    return sequences
 
+    df = pd.read_csv(csvfile)
+    ids = list(range(len(df)))
+    df['id'] = ids
+    
+    for elem in df.iterrows():
+        seq = elem[1][0]
+        seqid = elem[1][2]
+        sequences[seqid] = seq
+    return sequences, df
 
-def process_embedding( embedding, per_protein ):
-    '''
-        Direct output of ELMo has shape (3,L,1024), with L being the protein's
-        length, 3 being the number of layers used to train SeqVec (1 CharCNN, 2 LSTMs)
-        and 1024 being a hyperparameter chosen to describe each amino acid.
-        When a representation on residue level is required, you can sum
-        over the first dimension, resulting in a tensor of size (L,1024).
-        If you want to reduce each protein to a fixed-size vector, regardless of its
-        length, you can average over dimension L.
-    '''
-    print("processing emb", per_protein, embedding)
-    embedding = torch.tensor(embedding) # cast array to tensor
-    embedding = embedding.sum(dim=0) # sum over residue-embeddings of all layers (3k->1k)
-    if per_protein: # if embeddings are required on the level of whole proteins
-        embedding = embedding.mean(dim=0)
-    return embedding.cpu().detach().numpy() # cast to numpy array
-
-
-
-def get_embeddings( seq_dir, emb_path, model_dir, split_char, id_field, cpu, max_chars, per_protein, verbose ):
-    # fastafile.fa out /projects/btl/ftaho/toxic_amps_work/seqvec/uniref50_v2 | 0 False 5 True True
- 
-    seq_dict = dict() 
+def get_embeddings(seq_dict, df, out_path, per_residue=False):
     emb_dict = dict()
-
-    ####################### Read in FASTA file ###############################
-    if seq_dir.is_file(): # if single fasta file should be processed
-        seq_dict = read_fasta( seq_dir, split_char, id_field )
-    elif not seq_dict: # if a directory was provided: read all files 
-        for seq_path in seq_dir.glob('**/*fasta*'):
-            seq_dict = merge_two_dicts( seq_dict, read_fasta(seq_path, split_char, id_field))
+    # For a time speed up, sort the sequences based on length.
+    seq_dict = sorted(seq_dict.items(), key=lambda kv: len( seq_dict[kv[0]]))
     
-    ####################### Sort sequences ###############################
-    # Sorting sequences according to length is crucial for speed as batches 
-    # of proteins with similar size increase throughput.
-    seq_dict = sorted(seq_dict.items(), key=lambda kv: len( seq_dict[kv[0]] ) )
-    if verbose: print('Total number of sequences: {}'.format(len(seq_dict)))
-
-    model = get_elmo_model( model_dir, cpu, verbose )
-    batch          = list()
+    model = get_elmo_model()
+    batch = list()
     length_counter = 0
-    
     for index, (identifier, sequence) in enumerate(seq_dict): # for all sequences in the set
-        print("id: {}, seq: {}".format(identifier, sequence))
-        # append sequence to batch and sum amino acids over proteins in batch
-        batch.append( (identifier, sequence) )
+        batch.append((identifier, sequence))
         length_counter += len(sequence)
-        # Transform list of batches to embeddings
-        # if a) max. number of chars. for a batch is reached, 
-        # if b) sequence is longer than half  max_chars (avoids runtimeError for very long seqs.)
-        # if c) the last sequence is reached
-        if length_counter > max_chars or len(sequence)>max_chars/2 or index==len(seq_dict)-1:
 
-            # create List[List[str]] for batch-processing of ELMo
+        if length_counter > MAX_CHARS or len(sequence)>MAX_CHARS/2 or index==len(seq_dict)-1:
             tokens = [ list(seq) for _, seq in batch]
-            print("TOKEN: {}, type {}".format(tokens, type(tokens)))
             embeddings = model.embed_sentences(tokens)
-            
-            #######################  Batch-Processing ####################### 
+
             runtime_error = False
             for batch_idx, (sample_id, seq) in enumerate(batch): # for each seq in the batch
-                try: # try to get the embedding for the current sequnce
-                    embedding = next(embeddings)
+                try: embedding = next(embeddings)
                 except RuntimeError:
-                    if verbose:
-                        print('RuntimeError for {} (len={}).'.format(sample_id,len(seq)))
-                        print('Starting single sequence processing')
-                    runtime_error = True
+                    print('RuntimeError for {} (len={}).'.format(sample_id,len(seq)))
+                    print('Starting single sequence processing')
                     break
-                
-                # if protein was embedded successfully --> save embedding
-                embedding = process_embedding( embedding, per_protein )
-                emb_dict[sample_id] = embedding
-
-            ################## Single Sequence Processing ####################
-            # Single sequence processing in case of runtime error due to 
-            # a) very long sequence or b) too large batch size
-            # If this fails, you might want to consider lowering max_chars and/or 
-            # cutting very long sequences into smaller chunks
+                if per_residue:
+                    emb_dict[str(sample_id)] = process_embedding_per_residue(embedding)
+                else:
+                    emb_dict[sample_id] = process_embedding(embedding)
+            # This should not happen! There will be a keyerror later if it does.
             if runtime_error:
                 for batch_idx, (sample_id, seq) in enumerate(batch):
-                    try:
-                        embedding = model.embed_sentence( tokens[batch_idx] )
+                    try: embedding = model.embed_sentence(tokens[batch_idx])
                     except RuntimeError:
                         print('RuntimeError for {} (len={}).'.format(sample_id,len(seq)))
                         print('Single sequence processing not possible. Skipping seq. ..' + 
                               'Consider splitting the sequence into smaller seqs or process on CPU.')
                         continue
-                    
-                    # if protein was embedded successfully --> save embedding
-                    embedding = process_embedding( embedding, per_protein )
-                    emb_dict[sample_id] = embedding
-            
-            ################## Reset batch ####################
+                    if per_residue:
+                        emb_dict[str(sample_id)] = process_embedding_per_residue(embedding)
+                    else:
+                        emb_dict[sample_id] = process_embedding(embedding)
+
             batch = list()
             length_counter = 0
-            if verbose: print('.', flush=True, end='')
+    print('\nTotal number of embeddings: {}'.format(len(emb_dict)))
 
-    if verbose: print('\nTotal number of embeddings: {}'.format(len(emb_dict)))
+    # Write out files for the sequences, the labels so that further analysis can continue smoothly.
+    assert(len(emb_dict) == len(df))
+    
+    if per_residue:
+        # save the embeddings as npz file
+        np.savez( "{}_per_residue".format(out_path), **emb_dict)
+        labelfile = open("{}_labels_per_residue.csv".format(out_path), 'w+')
+        labelfile.write("label,seqid\n")
+        for i, elem in enumerate(df.iterrows()):
+            seq =  elem[1][0]
+            label = elem[1][1]
+            seqid = elem[1][2]
+            labelfile.write("{},{}\n".format(label,seqid))
+        labelfile.close()
+        return None,None
 
-    ################## Write embeddings to file ####################
-    try:
-        if verbose: print('Writing embeddings to: {}'.format(emb_path))
-        # save elmo representations    
-        np.savez( emb_path, **emb_dict)
-    except ZeroDivisionError:
-        print('Error: Embedding dictionary is empty!')
+    X_numpy = np.zeros((len(emb_dict), EMB_LEN))
+    y_numpy = np.zeros((len(emb_dict),))
+    for i, elem in enumerate(df.iterrows()):
+        seq =  elem[1][0]
+        label = elem[1][1]
+        seqid = elem[1][2]
+        X_numpy[i,:] = emb_dict[seqid]#[0]
+        if label == 'toxin': y_numpy[i] = 1
 
-    return None
-
+    pd.DataFrame(X_numpy).to_csv("{}.csv".format(out_path), header=None, index=None)
+    pd.DataFrame(y_numpy).to_csv("{}_labels.csv".format(out_path), header=None, index=None)
+    return X_numpy, y_numpy
 
 def create_arg_parser():
-    """"Creates and returns the ArgumentParser object."""
-
-    # Instantiate the parser
-    parser = argparse.ArgumentParser(description=( 
-            'embedder.py creates ELMo embeddings for a given text '+
-            ' file containing sequence(s) in FASTA-format.') )
-    
-    # Path to fasta file (required)
-    parser.add_argument( '-i', '--input', required=True, type=str,
-                    help='A path to a fasta-formatted text file containing protein sequence(s).' + 
-                            'Can also be a directory holding multiple fasta files.')
-
-    # Path for writing embeddings (required)
-    parser.add_argument( '-o', '--output', required=True, type=str, 
-                    help='A path to a file for saving the created embeddings as NumPy .npz file.')
-
-    # Path to model (optoinal)
-    parser.add_argument('--model', type=str, 
-                    default=Path.cwd() / 'model',
-                    help='A path to a directory holding a pre-trained ELMo model. '+
-                        'If the model is not found in this path, it will be downloaded automatically.' +
-                        'The file containing the weights of the model must be named weights.hdf5.' + 
-                        'The file containing the options of the model must be named options.json')
-    
-    # Create embeddings for a single protein or for all residues within a protein
-    parser.add_argument('--protein', type=bool, 
-                    default=False,
-                    help='Flag for summarizing embeddings from residue level to protein level ' +
-                    'via averaging. Default: False')
-    
-    # Number of residues within one batch
-    parser.add_argument('--batchsize', type=int, 
-                    default=15000,
-                    help='Number of residues which need to be accumulated before starting batch ' + 
-                    'processing. If you encounter an OutOfMemoryError, lower this value. Default: 15000')
-    
-    # Character for splitting fasta header
-    parser.add_argument('--split_char', type=str, 
-                    default='|',
-                    help='The character for splitting the FASTA header in order to retrieve ' +
-                        "the protein identifier. Should be used in conjunction with --id." +
-                        "Default: '|' ")
-    
-    # Field index for protein identifier in fasta header after splitting with --split_char 
-    parser.add_argument('--id', type=int, 
-                    default=1,
-                    help='The index for the uniprot identifier field after splitting the ' +
-                        "FASTA header after each symbole in ['|', '#', ':', ' ']." +
-                        'Default: 1')
-    
-    # Whether to use CPU or GPU
-    parser.add_argument('--cpu', type=bool, 
-                    default=False,
-                    help='Flag for using CPU to compute embeddings. Default: False')
-    
-    # Whether to print some statistics while processing
-    parser.add_argument('--verbose', type=bool, 
-                    default=True,
-                    help='Embedder gives some information while processing. Default: True')
+    parser = argparse.ArgumentParser(description=('embedder.py creates ELMo embeddings for a file containing sequence,label columns in CSV format.'))
+    parser.add_argument( '-i', '--input', required=True, type=str, help='A path to a csv-formatted text file containing sequence,label annotation(s).')
+    parser.add_argument( '-o', '--output', required=True, type=str, help='A path to a file for saving the created embeddings as csv file.')
     return parser
 
+def get_single_seq_embedding(sequence):
+    """Utility for single amino acid sequence embedding."""
+    model = get_elmo_model()
+    tokens = list(sequence)
+    embedding = model.embed_sentence(tokens)
+    return process_embedding(embedding)
+
+def get_list_embedding(sequence_list):
+    """Utility for a list of amino acid sequence embeddings."""
+    model = get_elmo_model()
+    result = np.zeros((len(sequence_list), EMB_LEN))
+    for i,sequence in enumerate(sequence_list):
+        tokens = list(sequence)
+        embedding = model.embed_sentence(tokens)
+        result[i,:] = process_embedding(embedding)
+    return result
+
+def get_list_embedding_per_residue(sequence_list):
+    """Utility for a list of amino acid sequence embeddings to get per residue embeddings."""
+    model = get_elmo_model()
+    # First ensure only sequences with length <= 100 are kept.
+    seqlist = []
+    for seq in sequence_list:
+        if len(seq) > 100: continue
+        seqlist.append(seq)
+    print("{} sequences were removed due to length > 100.".format(len(sequence_list) - len(seqlist)))
+
+    timesteps = 100
+    n = len(seqlist)
+    result = np.zeros((n, timesteps, EMB_LEN))
+    for i,sequence in enumerate(sequence_list):
+        tokens = list(sequence)
+        embedding = model.embed_sentence(tokens)
+        mat = process_embedding_per_residue(embedding)
+        l = mat.shape[0]
+        result[i,:l,:] = mat 
+    print(result.shape)
+    return result
 
 def main():
     parser = create_arg_parser()
     args = parser.parse_args()
-    seq_dir   = Path( args.input )
-    emb_path  = Path( args.output)
-    model_dir = Path( args.model )
-    split_char= args.split_char
-    id_field  = args.id
-    cpu_flag  = args.cpu
-    per_prot  = args.protein
-    max_chars = args.batchsize
-    verbose   = args.verbose
-    get_embeddings( seq_dir, emb_path, model_dir, split_char, id_field, 
-                       cpu_flag, max_chars, per_prot, verbose )
+    seq_dir   = Path(args.input)
+    emb_path  = Path(args.output)
 
-def load_embeddings(emb_file):
-    import pickle
-    import numpy as np
-    data = np.load(emb_file)
-    return data
+    seq_dict, df = get_sequences(seq_dir)
+    X, _ = get_embeddings(seq_dict, df, emb_path)
+    print(X.shape) #, y.shape)
 
 if __name__ == '__main__':
-    # main()
-    print("Starting up")
+    main()

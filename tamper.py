@@ -2,6 +2,23 @@
 Date: 2020-02-14
 Author: figalit (github.com/figalit)
 """
+
+import seqvec_embedder
+DEFAULT_SEQVEC_PATH = "seqvec/uniref50_v2" # Default path for seqvec pretrained model.
+
+def embed(pos_seqs, neg_seqs, seqvec_path=DEFAULT_SEQVEC_PATH):
+    # Compute and store the seqvec embeddings in a new directory
+
+
+    pos_embeddings = seqvec_embedder.get_list_embedding(pos_seqs)
+    neg_embeddings = seqvec_embedder.get_list_embedding(neg_seqs)
+    
+    pos_embeddings_residue = seqvec_embedder.get_list_embedding_per_residue(pos_seqs)
+    neg_embeddings_residue = seqvec_embedder.get_list_embedding(neg_seqs)
+    
+
+
+
 import os
 import pandas as pd
 import numpy as np
@@ -38,7 +55,6 @@ def train_embed(pos_seqs, neg_seqs, seqvec_path):
 
     X_train = np.concatenate((np.asarray(pos_seqvec), np.asarray(neg_seqvec)))
     y_train = np.concatenate((pos_labels, neg_labels))
-    # print("Returning {} of shape {}\n labels as {} of shape {}".format(type(X_train), X_train.shape, type(y_train), y_train.shape))
     return X_train, y_train
 
 def get_model():
