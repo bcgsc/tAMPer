@@ -17,9 +17,10 @@ MAX_CHARS = 15000
 EMB_LEN = 1024
 MODEL_DIR = '/projects/btl/ftaho/toxic_amps/seqvec/uniref50_v2/'
 CPU = False
+TIMESTEPS = 100
 
-def get_elmo_model():
-    model_dir = Path(MODEL_DIR)
+def get_elmo_model(seqvec_dir=MODEL_DIR):
+    model_dir = Path(seqvec_dir)
     weights_path = model_dir / 'weights.hdf5'
     options_path = model_dir / 'options.json'
 
@@ -27,7 +28,7 @@ def get_elmo_model():
     if not (weights_path.exists() and options_path.exists()):
         print('No existing model found. Start downloading pre-trained SeqVec (~360MB)...')
         import urllib.request
-        Path.mkdir(MODEL_DIR)
+        Path.mkdir(seqvec_dir)
         repo_link    = 'http://rostlab.org/~deepppi/embedding_repo/embedding_models/seqvec'
         options_link = repo_link +'/options.json'
         weights_link = repo_link +'/weights.hdf5'
@@ -151,6 +152,7 @@ def get_single_seq_embedding(sequence):
     embedding = model.embed_sentence(tokens)
     return process_embedding(embedding)
 
+# TODO: Delete.
 def get_list_embedding(sequence_list):
     """Utility for a list of amino acid sequence embeddings."""
     model = get_elmo_model()
@@ -161,6 +163,32 @@ def get_list_embedding(sequence_list):
         result[i,:] = process_embedding(embedding)
     return result
 
+def list_embeddings(sequence_list, seqvec_dir):
+    """Utility for a list of amino acid sequence embeddings."""
+    model = get_elmo_model(seqvec_dir=seqvec_dir)
+    result = np.zeros((len(sequence_list), EMB_LEN))
+    for i,sequence in enumerate(sequence_list):
+        tokens = list(sequence)
+        embedding = model.embed_sentence(tokens)
+        result[i,:] = process_embedding(embedding)
+    return result
+
+def list_embeddings_residue(sequence_list, seqvec_dir):
+    """Utility for a list of amino acid sequence embeddings to get per residue embeddings."""
+    model = get_elmo_model(seqvec_dir=seqvec_dir)
+
+    result = np.zeros((len(seqlist), TIMESTEPS, EMB_LEN))
+    for i,sequence in enumerate(sequence_list):
+        tokens = list(sequence)
+        embedding = model.embed_sentence(tokens)
+        mat = process_embedding_per_residue(embedding)
+        l = mat.shape[0]
+        result[i,:l,:] = mat 
+    # print(result.shape)
+    return result
+
+
+# TODO: Delete.
 def get_list_embedding_per_residue(sequence_list):
     """Utility for a list of amino acid sequence embeddings to get per residue embeddings."""
     model = get_elmo_model()

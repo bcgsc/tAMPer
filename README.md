@@ -28,8 +28,9 @@ Parameters/options used for training are:
 - `--pos`: fasta file containing positive training samples.
 - `--neg`: fasta file containing negative training samples.
 - `--name`: a name for your new trained model, e.g. `funnytool_tamper_model` if you are developing *funnytool* and using the default `tAMPer` model (`SeqVec` + `MLP`).
-- `--custom_model`: If you want to have another top level classifier instead of the default `MLP` then you should add a path to a file that contains a function `get_model` that returns such a model. Make sure the model has a `train` and `predict` function, or make necessary modifications to these scripts for handling classification using your custom model.
 - `--seqvec_path`: If you have added the downloaded SeqVec model under `seqvec/` repo, you should not worry about adding a path here, o/w add your trained SeqVec model path.
+
+Note: If you want to have different top level classifier for your purposes, modify the `models.py` `base_models()` function.
 
 ## **predict**
 

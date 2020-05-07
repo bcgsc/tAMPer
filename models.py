@@ -1,51 +1,61 @@
 """
-Date: 2020-05-06
+Date: 2020-01-15
 Author: figalit (github.com/figalit)
 
-Module to load necessary models for tAMPer training and analysis.
+Contains definitions for models used in tAMPer.
 """
 
-def roc(clf, X, y):
-    """For an already fitted model, visualize the ROC curves for a custom 5 fold cross validation"""
-    cv = StratifiedKFold(n_splits=5)
-    name = type(clf).__name__
-    tprs = []
-    aucs = []
-    mean_fpr = np.linspace(0, 1, 100)
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, StackingClassifier
+from sklearn.linear_model import LogisticRegression
 
-    fig, ax = plt.subplots()
-    for i, (train, test) in enumerate(cv.split(X, y)):
-        predicted = clf.predict_proba(X[test])
-        fpr, tpr, thresholds = roc_curve(y[test], predicted[:,1]) #probas_[:,1]
-        interp_tpr = interp(mean_fpr, fpr, tpr)
-        interp_tpr[0] = 0.0
-        tprs.append(interp_tpr)
-        roc_auc = auc(fpr, tpr)
-        aucs.append(roc_auc)
-        ax.plot(fpr, tpr, lw=1, alpha=0.3, label='ROC fold %d (AUC = %0.2f)' % (i, roc_auc))
-        i+=1
-        
-    ax.plot([0, 1], [0, 1], linestyle='--', lw=2, color='r',
-            label='Chance', alpha=.8)
+from keras.models import Sequential, Model
+from keras.layers.core import Masking
+from keras.layers import Bidirectional, LSTM, RepeatVector, TimeDistributed, Dense, Embedding, Dropout
+from keras import regularizers
+from keras.optimizers import Adam
 
-    mean_tpr = np.mean(tprs, axis=0)
-    mean_tpr[-1] = 1.0
-    mean_auc = auc(mean_fpr, mean_tpr)
-    std_auc = np.std(aucs)
-    ax.plot(mean_fpr, mean_tpr, color='b',
-            label=r'Mean ROC (AUC = %0.2f $\pm$ %0.2f)' % (mean_auc, std_auc),
-            lw=2, alpha=.8)
+def base_models():
+    """Returns the current base models used in the classification of SeqVec vectors"""
+    clf1 = GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=0)
+    clf2 = LogisticRegression(random_state=0)
+    clf3 = RandomForestClassifier(max_depth=15, random_state=0, n_estimators=300)
+    
+    estimators = [
+        ("gboost", clf1),
+        ("logreg", clf2),
+        ("rf", clf3),
+    ]
+    stacking = StackingClassifier(estimators=estimators, final_estimator=LogisticRegression())
+    return clf1, clf2, clf3, stacking
 
-    std_tpr = np.std(tprs, axis=0)
-    tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
-    tprs_lower = np.maximum(mean_tpr - std_tpr, 0)
-    ax.fill_between(mean_fpr, tprs_lower, tprs_upper, color='grey', alpha=.2,
-                    label=r'$\pm$ 1 std. dev.')
+def predict_base(models_dir, embeddings):
+    clf1, clf2, clf3, stacking = base_models()
+    preds = []    
+    for clf in [clf1,clf2,clf3, stacking]:
+        name = type(clf).__name__
+        clf = pickle.load(open("{}{}.sav".format(models_dir, name), 'rb'))
+        p = clf.predict_proba(data)[:,1]
+        preds.append(p)
+    return np.stack(tuple(preds), axis=0).T
 
-    ax.set(xlim=[-0.05, 1.05], ylim=[-0.05, 1.05],
-           title="ROC, {}".format(name))
-    ax.legend(loc="lower right")
-    # plt.savefig('figs/ROC_{}.png'.format(name))
-    figname = 'ROC_{}.png'.format(name)
-    plt.savefig(figname)
-    print("Saved ROC to", figname)
+
+def lstm_model(features, timesteps, encoding_dim):
+    model = Sequential()
+    model.add(Masking(mask_value=0., input_shape=(timesteps,features)))
+    model.add(Bidirectional(LSTM(encoding_dim)))
+    model.add(Dropout(rate=0.2))
+    model.add(Dense(encoding_dim, activation='relu'))
+    model.add(Dense(10, activation='relu'))
+    model.add(Dense(1, activation='sigmoid'))
+    model.compile(loss='mean_squared_error', optimizer='adam', metrics=['accuracy'])
+    return model
+
+def predict_lstm(modelname, embeddings):
+    model = keras.models.load_model(modelname)
+    y_pred_scores = model.predict(embeddings)
+    y_pred = []
+    for i in y_pred_scores:
+        if i>=0.5: y_pred.append(1)
+        else: y_pred.append(0)
+    return y_pred_scores, y_pred
+
