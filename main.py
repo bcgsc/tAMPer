@@ -12,6 +12,8 @@ HELP_TEXT = '''
 Use the 'train' mode to input your own positive and negative sequences, and train our models on your sequences.
 Use the 'predict' mode to get predictions for your test set. Make sure to have labels in your fasta file, for personal downstream analysis and statistics.
 '''
+PREDICTIONS_DIR = "predictions/"
+MODELS_DIR = "models/"
 
 def read_fasta(filename):
     from Bio import SeqIO
@@ -36,36 +38,39 @@ def check_seqvec_path(seqvec_path):
 def train(args):
     if args.neg == None or args.pos == None:
         print("Please enter a positive (--pos) and negative (--neg) fasta file.")
-        return 0
+        exit()
     
     positive_seqs = read_fasta(args.pos)
     negative_seqs = read_fasta(args.neg)
     check_seqvec_path(args.seqvec_path)
-    tamper.embed(pos_seqs=positive_seqs, neg_seqs=negative_seqs, args.seqvec_path, args.name)
-    
+
+    models_dir = "{}{}".format(MODELS_DIR, models_name)
+    if not os.path.exists(models_dir):
+        os.makedirs(models_dir)
+    tamper.embed(pos_seqs=positive_seqs, neg_seqs=negative_seqs, seqvec_path=args.seqvec_path, models_dir=models_dir)
 
 def predict(args):
     if args.sequences == None:
         print("Please enter a fasta file of sequences for prediction.")
-        return 0
+        exit()
     input_sequences = read_fasta(args.sequences)
     check_seqvec_path(args.seqvec_path)
 
     X_test, X_test_residue = tamper.embed_seqs(input_sequences, args.seqvec_path)
     if not os.path.isdir(args.models_dir):
         print('Please provide a valid trained model directory (--models_dir).')
-        return 0
+        exit()
 
-    preds = tamper.predict(X_test, X_test_residue, seqs)
-    
-    # TODO: Change
-    
-    outf = open(out, 'w+')
+    preds = tamper.predict(X_test, X_test_residue, args.models_dir)
+
+    if not os.path.exists(PREDICTIONS_DIR): os.makedirs(PREDICTIONS_DIR)
+    outfilename = "{}{}.csv".format("PREDICTIONS_DIR", args.out)
+    outf = open(, 'w+')
     outf.write("sequence,score\n")
     for i, score in enumerate(preds):
-        outf.write("{},{:.5f}\n".format("N",final_preds[i]))
+        outf.write("{},{:.5f}\n".format(input_sequences[i],score))
     outf.close()
-
+    print("Predictions saved in", outfilename)
 
 def argparser():
     # Create the parser.
@@ -83,6 +88,8 @@ def argparser():
     my_parser.add_argument("--sequences", type=str, help="Custom fasta file for prediction using a saved model.")
     my_parser.add_argument("--models_dir", type=str, 
         help="Name of the directory under which models to be ensembled for prediction are stored. Starts with models/.", default="tamper")
+    my_parser.add_argument("--out", type=str, 
+        help="Name of the file with which to save predictions.", default="predictions")
     
     # common command line options.
     my_parser.add_argument("--seqvec_path", type=str, 
@@ -110,4 +117,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    # TODO(figalit): Also store the embeddings of protein sequences.
