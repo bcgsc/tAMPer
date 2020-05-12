@@ -4,6 +4,8 @@ Author: figalit (github.com/figalit)
 
 Adapted mostly from the seqvec_embedder.py from the SeqVec Github page.
 """
+from warnings import simplefilter
+simplefilter(action='ignore', category=FutureWarning)
 
 import argparse
 from pathlib import Path
@@ -152,17 +154,6 @@ def get_single_seq_embedding(sequence):
     embedding = model.embed_sentence(tokens)
     return process_embedding(embedding)
 
-# TODO: Delete.
-def get_list_embedding(sequence_list):
-    """Utility for a list of amino acid sequence embeddings."""
-    model = get_elmo_model()
-    result = np.zeros((len(sequence_list), EMB_LEN))
-    for i,sequence in enumerate(sequence_list):
-        tokens = list(sequence)
-        embedding = model.embed_sentence(tokens)
-        result[i,:] = process_embedding(embedding)
-    return result
-
 def list_embeddings(sequence_list, seqvec_dir):
     """Utility for a list of amino acid sequence embeddings."""
     model = get_elmo_model(seqvec_dir=seqvec_dir)
@@ -177,38 +168,13 @@ def list_embeddings_residue(sequence_list, seqvec_dir):
     """Utility for a list of amino acid sequence embeddings to get per residue embeddings."""
     model = get_elmo_model(seqvec_dir=seqvec_dir)
 
-    result = np.zeros((len(seqlist), TIMESTEPS, EMB_LEN))
+    result = np.zeros((len(sequence_list), TIMESTEPS, EMB_LEN))
     for i,sequence in enumerate(sequence_list):
         tokens = list(sequence)
         embedding = model.embed_sentence(tokens)
         mat = process_embedding_per_residue(embedding)
         l = mat.shape[0]
         result[i,:l,:] = mat 
-    # print(result.shape)
-    return result
-
-
-# TODO: Delete.
-def get_list_embedding_per_residue(sequence_list):
-    """Utility for a list of amino acid sequence embeddings to get per residue embeddings."""
-    model = get_elmo_model()
-    # First ensure only sequences with length <= 100 are kept.
-    seqlist = []
-    for seq in sequence_list:
-        if len(seq) > 100: continue
-        seqlist.append(seq)
-    print("{} sequences were removed due to length > 100.".format(len(sequence_list) - len(seqlist)))
-
-    timesteps = 100
-    n = len(seqlist)
-    result = np.zeros((n, timesteps, EMB_LEN))
-    for i,sequence in enumerate(sequence_list):
-        tokens = list(sequence)
-        embedding = model.embed_sentence(tokens)
-        mat = process_embedding_per_residue(embedding)
-        l = mat.shape[0]
-        result[i,:l,:] = mat 
-    print(result.shape)
     return result
 
 def main():
