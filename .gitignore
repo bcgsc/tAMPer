@@ -4,6 +4,7 @@
 *.vscode*
 *_deprecated.*
 *predictions/*
+*visualize.py*
 *.fasta*
 *seqvec/*
 *scripts/*
