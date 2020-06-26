@@ -16,7 +16,7 @@ Use the 'train' mode to input your own positive and negative sequences, and trai
 Use the 'predict' mode to get predictions for your test set.
 '''
 PREDICTIONS_DIR = "predictions/"
-MODELS_DIR = "models/"
+MODELS_DIR = "models"
 
 def read_fasta(filename):
     from Bio import SeqIO
@@ -50,7 +50,7 @@ def train(args):
     positive_seqs, _ = read_fasta(args.pos)
     negative_seqs, _ = read_fasta(args.neg)
 
-    models_dir = "{}{}".format(MODELS_DIR, args.name)
+    models_dir = "{}/{}".format(MODELS_DIR, args.name)
     if not os.path.exists(models_dir):
         os.makedirs(models_dir)
     tamper.embed(pos_seqs=positive_seqs, neg_seqs=negative_seqs,  models_dir=models_dir, seqvec_path=args.seqvec_path)
@@ -99,7 +99,7 @@ def argparser():
     
     # common command line options.
     my_parser.add_argument("--seqvec_path", type=str, 
-        help="Path to trained seqvec model (.../uniref50_v2). Add file directory of where your SeqVec model lies.", 
+        help="Path to trained seqvec model ( ... /uniref50_v2). Add file directory of where your SeqVec model lies.", 
         default=DEFAULT_SEQVEC_PATH)
 
     args = my_parser.parse_args()

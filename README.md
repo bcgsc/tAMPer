@@ -20,29 +20,28 @@ In order to predict the results of a pre-trained model on your test sequences, y
 
 ## **train**
 
-When you run the `main.py` script, you should write the `train` positional argument, like so:
+When you run the `main.py` script, you should write the `train` positional argument:
 
 ``` python3 main.py train [options] ```
 
 Parameters/options used for training are:
-- `--pos`: fasta file containing positive training samples.
-- `--neg`: fasta file containing negative training samples.
-- `--name`: a name for your new trained model, e.g. `funnytool_tamper_model` if you are developing *funnytool* and using the default `tAMPer` model (`SeqVec` + `MLP`).
-- `--seqvec_path`: If you have added the downloaded SeqVec model under `seqvec/` repo, you should not worry about adding a path here, o/w add your trained SeqVec model path.
+- `--pos`: Positive training data fasta file.
+- `--neg`: Negative training data fasta file.
+- `--name`: A name for the model to be trained.
+- `--seqvec_path`: Path to trained seqvec model (.../uniref50_v2). Add file directory of where your SeqVec model lies.
 
-Note: If you want to have different top level classifier for your purposes, modify the `models.py` `base_models()` function.
+The `train` mode will create a new `models/<name>/` directory if one does not already exist, and it will store the models under that directory.
+Note: If you want to have different top level classifier(s) for your purposes, modify the `models.py` `base_models()` function.
 
 ## **predict**
 
-When you run the `main.py` script, you should write the `predict` positional argument, like so:
+When you run the `main.py` script, you should write the `predict` positional argument:
 
 ``` python3 main.py predict [options] ```
 
 Parameters/options used for predicting are:
 
-- `--sequences`: fasta file containing the sequences you would like to test.
-- `--model_name`: the name of the model that has been trained by the `train` mode. Default is already pretrained `tAMPer` model.
-
-## Visualizations
-
-This includes visualizations that accompany the paper.
+- `--sequences`: Custom fasta file for prediction using a saved model.
+- `--models_dir`: Name of the directory under which models to be ensembled for prediction are stored. Starts with models/.
+- `--out`: Name of the file with which to save predictions.
+- `--seqvec_path`: [common with train mode] Path to trained seqvec model (.../uniref50_v2). Add file directory of where your SeqVec model lies.
