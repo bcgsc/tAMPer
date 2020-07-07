@@ -8,10 +8,19 @@ After downloading this file, you should decompress and ideally place them under 
 
 # Requirements
 
+Some of the required packages:
+
 * `Python =3.6.9`
-* `torch >=0.4.1`
-* `allenlp`
-* `scikit-learn`
+* `torch =0.4.1`
+* `allenlp =0.7.2`
+* `fasttext =0.9.2`
+* `Keras =2.2.4`
+* `Tensorflow =1.13.1`
+* `Theano =1.0.3`
+* `scikit-learn =0.20.1`
+* `Biopython =1.76`
+
+Note: You can create a new environment in conda using the `environment.yml` file. More details [here](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file). 
 
 # Usage
 
