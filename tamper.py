@@ -63,7 +63,7 @@ def embed(pos_seqs, neg_seqs, models_dir, seqvec_path="seqvec/uniref50_v2"):
 
 def predict(embs, embs_residue, models_dir):
     # per residue predictions
-    lstm_modelname = "{}{}.h5".format(models_dir, "lstm_model")
+    lstm_modelname = "{}{}.h5".format(models_dir, SEQ_MODEL_NAME)
     y_pred_res_score, y_pred_res = models.predict_lstm(lstm_modelname, embs_residue)
     # base predictions
     y_pred_base = models.predict_base(models_dir, embs)

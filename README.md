@@ -8,7 +8,7 @@ After downloading this file, you should decompress and ideally place them under 
 
 # Requirements
 
-* `Python >=3.6.7`
+* `Python =3.6.9`
 * `torch >=0.4.1`
 * `allenlp`
 * `scikit-learn`
@@ -42,6 +42,6 @@ When you run the `main.py` script, you should write the `predict` positional arg
 Parameters/options used for predicting are:
 
 - `--sequences`: Custom fasta file for prediction using a saved model.
-- `--models_dir`: Name of the directory under which models to be ensembled for prediction are stored. Starts with models/.
+- `--models_dir`: Name of the directory under which models to be ensembled for prediction are stored. Starts with `models/`.
 - `--out`: Name of the file with which to save predictions.
 - `--seqvec_path`: [common with train mode] Path to trained seqvec model (.../uniref50_v2). Add file directory of where your SeqVec model lies.
