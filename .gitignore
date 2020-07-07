@@ -5,7 +5,4 @@
 *_deprecated.*
 *predictions/*
 *visualize.py*
-*.fasta*
 *seqvec/*
-*scripts/*
-*custom_model*
