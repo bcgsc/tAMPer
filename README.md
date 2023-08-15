@@ -1,4 +1,4 @@
-# tAMPer: Predicting toxicity of antimicrobial peptides.
+# tAMPer: structure-aware deep learning model for toxicity prediction of antimicrobial peptides.
 
 This repository contains code for running our model, with both the possibility to train your own sequences, or predict for your purposes.
 
