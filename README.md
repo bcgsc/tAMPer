@@ -1,6 +1,6 @@
-# tAMPer: Structure-Aware Deep Learning Model for Toxicity Prediction of Antimicrobial Peptides
+![Project Logo](https://github.com/bcgsc/tAMPer/blob/master/img/logo.png) <!-- If you have a project logo, include it here -->
 
-![Project Logo](link_to_your_logo.png) <!-- If you have a project logo, include it here -->
+# tAMPer: Structure-Aware Deep Learning Model for Toxicity Prediction of Antimicrobial Peptides
 
 ## Table of Contents
 
