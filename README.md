@@ -16,7 +16,7 @@
 
 ## About
 
-tAMPer is a deep learning model designed for predicting the toxicity of antimicrobial peptides (AMPs) by considering their sequential and structural features. This model aims to enhance the accuracy of toxicity predictions for AMPs, which play a crucial role in the defense mechanisms of various organisms.
+tAMPer is a deep learning model designed for predicting the toxicity of antimicrobial peptides (AMPs) by considering their sequential and structural features. tAMPer adopts a graph-based representation, where each peptide is represented as a graph that encodes AlphaFold-predicted 3D structure of the peptide. Structural features are extracted using graph neural networks, while recurrent neural networks capture sequential dependencies.
 
 ## Files
 
