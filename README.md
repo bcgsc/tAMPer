@@ -9,6 +9,7 @@
 - [About](#about)
 - [Files](#files)
 - [Installation](#installation)
+- [Dependencies](#dependencies)
 - [Usage](#usage)
 - [Results](#results)
 - [Contributing](#contributing)
@@ -46,8 +47,26 @@ The project contains the following files and directories:
    ```bash
    cd tAMPer
    ```
+
+### Conda
+
 3. Create a conda environment (optional but recommended):
    ```bash
    conda env create -f environment.yml
    conda activate tAMPer
    ```
+
+### Pip
+
+3. Create a python virtual environment environment (make sure python3 is available/loaded):
+   ```bash
+   virtualenv --no-download ENV_ADDRESS
+   source ENV_ADDRESS/bin/activate
+   pip install --no-index --upgrade pip # upgrade pip if necessary
+   pip install -r requirements.txt
+   ```
+
+
+## Dependencies
+
+## Usage
