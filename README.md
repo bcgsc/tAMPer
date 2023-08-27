@@ -69,11 +69,11 @@ The project contains the following files and directories:
 ## Dependencies
 
 - python (>= 3.9)
-- [pytorch (>= 1.13.1)](https://pytorch.org/get-started/previous-versions/)
+- [pytorch](https://pytorch.org/get-started/previous-versions/) (>= 1.13.1)
 - [torch-geometric](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html)
 - torch-cluster
 - torch-scatter
-- [fair-esm (>= 2.0.0)](https://github.com/facebookresearch/esm)
+- [fair-esm](https://github.com/facebookresearch/esm) (>= 2.0.0)
 - numpy
 - pandas
 - biopython
