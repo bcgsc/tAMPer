@@ -66,7 +66,18 @@ The project contains the following files and directories:
    pip install -r requirements.txt
    ```
 
-
 ## Dependencies
+
+- python (>= 3.9)
+- [pytorch (>= 1.13.1)](https://pytorch.org/get-started/previous-versions/)
+- [torch-geometric](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html)
+- torch-cluster
+- torch-scatter
+- [fair-esm (>= 2.0.0)](https://github.com/facebookresearch/esm)
+- numpy
+- pandas
+- biopython
+- wandb (optional)
+- loguru
 
 ## Usage
