@@ -1,4 +1,5 @@
 import torch
+import os
 import numpy as np
 import pandas as pd
 import torch_geometric.data
@@ -9,9 +10,10 @@ from torch.nn import (
     CrossEntropyLoss,
     Sigmoid
 )
+from argparse import ArgumentParser
 import torch.nn.functional as F
 from dataset import ToxicityData
-from utils import check_loss, cal_metrics, ensemble_structures
+from utils import check_loss, cal_metrics, ensemble_structures, set_seed
 
 
 def predict(model,
@@ -41,6 +43,8 @@ def predict(model,
 
 if __name__ == "__main__":
 
+    parser = ArgumentParser()
+
     parser.add_argument('-seq', '--sequences', type=str, required=True)
     parser.add_argument('-pdb_dir', '--pdb_dir', default=f'{os.getcwd()}/data/structures/', type=str, required=True)
     parser.add_argument('-dm', '--d_max', default=10, type=int, required=False)
@@ -57,7 +61,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    set_seed(args.seed)
+    set_seed(1)
 
     if args.embedding == 't6':
         seq_inp_dim = 320
@@ -68,7 +72,7 @@ if __name__ == "__main__":
     else:
         seq_inp_dim = 1280
 
-    test_data = ToxicityData(seqs_file=args.sequences,
+    test_data = ToxicityData(seqs_file=[args.sequences],
                              pdbs_path=args.pdb_dir,
                              device=device,
                              max_d=args.d_max)
