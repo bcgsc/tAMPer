@@ -29,15 +29,14 @@ def predict(model,
                                               embeddings=test_data.seq_embeddings,
                                               device=device,
                                               threshold=threshold)
-    meters = cal_metrics(preds, {})
 
     preds['id'] = ids
+    preds.pop('y')
+    preds['prediction'] = preds.pop('y_hat')
+    preds['probability'] = preds.pop('score')
+
     df = pd.DataFrame(preds)
-    df.to_csv('best_scores.csv', index=False)
-
-    np.savez('weights.npz', **weights)
-
-    return meters
+    df.to_csv(args.result_dir, index=False)
 
 
 if __name__ == "__main__":
@@ -82,7 +81,7 @@ if __name__ == "__main__":
         num_workers=8,
         shuffle=False)
 
-    model = tAMPer(
+    tamper = tAMPer(
         seq_input_dim=seq_inp_dim,
         douts={'seq': 0.5, 'strct': 0.5},
         node_dims=(6, 3),
@@ -93,18 +92,9 @@ if __name__ == "__main__":
         gru_layers=args.sequence_num_layers,
         num_gnn_layers=args.gnn_layers)
 
-    model.to(device=device)
-    model.load_state_dict(torch.load(args.checkpoint_dir, map_location=device)['model'])
-
-    ids, weights, preds = ensemble_structures(model=model,
-                                              loader=test_dl,
-                                              embeddings=test_data.seq_embeddings,
-                                              device=device,
-                                              threshold=0.5)
-    preds['id'] = ids
-    preds.pop('y')
-    preds['prediction'] = preds.pop('y_hat')
-    preds['probability'] = preds.pop('score')
-
-    df = pd.DataFrame(preds)
-    df.to_csv(args.result_dir, index=False)
+    predict(
+        model=tamper,
+        checkpoint_folder=rgs.checkpoint_dir,
+        device=device,
+        threshold=0.5
+    )
