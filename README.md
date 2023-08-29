@@ -68,6 +68,7 @@ The project contains the following files and directories:
 
 ## Dependencies
 
+- [DSSP](https://ssbio.readthedocs.io/en/latest/instructions/dssp.html)
 - python (>= 3.9)
 - [pytorch](https://pytorch.org/get-started/previous-versions/) (>= 1.13.1)
 - [torch-geometric](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html)
@@ -85,65 +86,72 @@ The project contains the following files and directories:
 ```
 PROGRAM: train.py & predict.py
 
-DESCRIPTION:
-      The predict.py & train.py run tAMPer for predicting and training, respectively.
-      
 USAGE(S): 
 
-      Train
+   usage: train.py [-h] -tr_pos TR_POS -tr_neg TR_NEG -pdb_dir PDB_DIR -val_pos VAL_POS -val_neg VAL_NEG [-lr LEARNING_RATE] [-hdim HDIM] [-sn SEQUENCE_NUM_LAYERS] [-emd EMBEDDING] [-gl GNN_LAYERS] [-bz BATCH_SIZE] [-eph NUM_EPOCH] [-acg ACCUM_ITER] [-wd WEIGHT_DECAY] [-dm D_MAX] [-beta BETA]
+                [-monitor MONITOR_METER] [-pck PRE_CHKPNT] [-ck CHECKPOINT_DIR] [-log LOG_FILE]
 
-      python3 train.py [-tr_pos <.FASTA>] [-tr_neg <.FASTA>] [-val_pos <.FASTA>] [-val_neg <.FASTA>] [-pdb_dir <address>] [-lr <float>] [-eph <int>] [-ck <checkpoint (.pt)>] [-log <log (.npy)>] [-res <validation.csv>] [-wdb] [-sn <int>] [-emd {t6, t12, t30, t33}] []
-      
-OPTIONS:
-       -a <address>    email address for alerts                               
-       -c <class>      taxonomic class of the dataset                         (default = top-level directory in $outdir)
-       -d              debug mode of Makefile                                 
-       -f              force characterization even if no AMPs found           
-       -h              show help menu                                         
-       -m <target>     Makefile target                                        (default = exonerate)
-       -n <species>    taxonomic species or name of the dataset               (default = second-level directory in $outdir)
-       -o <directory>  output directory                                       (default = directory of input reads TXT file)
-       -p              run processes in parallel                              
-       -r <FASTA.gz>   reference transcriptome                                (accepted multiple times, *.fna.gz *.fsa_nt.gz)
-       -s              strand-specific library construction                   (default = false)
-       -t <int>        number of threads                                      (default = 48)
-       -v              print version number                                   
-       -E <e-value>    E-value threshold for homology search                  (default = 1e-5)
-       -S <0 to 1>     AMPlify score threshold for amphibian AMPs             (default = 0.90)
-       -L <int>        Length threshold for AMPs                              (default = 30)
-       -C <int>        Charge threshold for AMPs                              (default = 2)
-       -R              Disable redundancy removal during transcript assembly
+   train.py script runs tAMPer for training.
 
-       Predict
+   options:
+     -h, --help            show this help message and exit
+     -tr_pos TR_POS, --tr_pos TR_POS
+                           train toxic sequences address (.faa)
+     -tr_neg TR_NEG, --tr_neg TR_NEG
+                           traib non-toxic sequences address (.faa)
+     -pdb_dir PDB_DIR, --pdb_dir PDB_DIR
+                           directory of structures
+     -val_pos VAL_POS, --val_pos VAL_POS
+                           validation toxic sequences address (.faa)
+     -val_neg VAL_NEG, --val_neg VAL_NEG
+                           validation non-toxic sequences address (.faa)
+     -lr LEARNING_RATE, --learning_rate LEARNING_RATE
+     -hdim HDIM, --hdim HDIM
+                           hidden dimension of model for h_seq and h_strct (int)
+     -sn SEQUENCE_NUM_LAYERS, --sequence_num_layers SEQUENCE_NUM_LAYERS
+                           number of GRU Layers (int)
+     -emd EMBEDDING, --embedding EMBEDDING
+                           different variant of ESM2 embeddings: {t6, t12, t30, t33, t36, t48}
+     -gl GNN_LAYERS, --gnn_layers GNN_LAYERS
+                           number of GNNs Layers (int)
+     -bz BATCH_SIZE, --batch_size BATCH_SIZE
+     -eph NUM_EPOCH, --num_epoch NUM_EPOCH
+     -acg ACCUM_ITER, --accum_iter ACCUM_ITER
+     -wd WEIGHT_DECAY, --weight_decay WEIGHT_DECAY
+     -dm D_MAX, --d_max D_MAX
+                           max distance to consider two connect two residues in the graph (int)
+     -beta BETA, --beta BETA
+                           lambda in the objective function
+     -monitor MONITOR_METER, --monitor_meter MONITOR_METER
+                           the metric to monitor for early stopping during training
+     -pck PRE_CHKPNT, --pre_chkpnt PRE_CHKPNT
+                           address of pre-trained GNNs (.pt)
+     -ck CHECKPOINT_DIR, --checkpoint_dir CHECKPOINT_DIR
+                           address to where trained model be stored (.pt)
+     -log LOG_FILE, --log_file LOG_FILE
+                           address to where log file be stored (.npy)
 
-       python3 predict.py [-seq <.FASTA>] [-pdb_dir <address>] [-lr <float>] [-eph <int>] [-ck <checkpoint (.pt)>] [-log <log (.npy)>] [-res <.csv>] [-wdb]
+   usage: predict.py [-h] -seq SEQUENCES -pdb_dir PDB_DIR [-dm D_MAX] [-ck CHECKPOINT_DIR] [-res RESULT_DIR]
 
-OPTIONS:
-       -a <address>    email address for alerts                               
-       -c <class>      taxonomic class of the dataset                         (default = top-level directory in $outdir)
-       -d              debug mode of Makefile                                 
-       -f              force characterization even if no AMPs found           
-       -h              show help menu                                         
-       -m <target>     Makefile target                                        (default = exonerate)
-       -n <species>    taxonomic species or name of the dataset               (default = second-level directory in $outdir)
-       -o <directory>  output directory                                       (default = directory of input reads TXT file)
-       -p              run processes in parallel                              
-       -r <FASTA.gz>   reference transcriptome                                (accepted multiple times, *.fna.gz *.fsa_nt.gz)
-       -s              strand-specific library construction                   (default = false)
-       -t <int>        number of threads                                      (default = 48)
-       -v              print version number                                   
-       -E <e-value>    E-value threshold for homology search                  (default = 1e-5)
-       -S <0 to 1>     AMPlify score threshold for amphibian AMPs             (default = 0.90)
-       -L <int>        Length threshold for AMPs                              (default = 30)
-       -C <int>        Charge threshold for AMPs                              (default = 2)
-       -R              Disable redundancy removal during transcript assembly
+   predict.py script runs tAMPer for prediction.
+
+   options:
+     -h, --help            show this help message and exit
+     -seq SEQUENCES, --sequences SEQUENCES
+                           address of sequences (.faa)
+     -pdb_dir PDB_DIR, --pdb_dir PDB_DIR
+                           address directory of structures
+     -dm D_MAX, --d_max D_MAX
+                           max distance to consider two connect two residues in the graph
+     -ck CHECKPOINT_DIR, --checkpoint_dir CHECKPOINT_DIR
+                           address of .pt checkpoint to load the model
+     -res RESULT_DIR, --result_dir RESULT_DIR
+                           address of results (.csv) to be saved
 
                                                                               
 EXAMPLE(S):
-      python3 train.py -a user@example.com -c class -n species -p -s -t 8 -o /path/to/output/directory -r /path/to/reference.fna.gz -r /path/to/reference.fsa_nt.gz /path/to/input.txt 
+      python3 train.py
 
-      python3 predict.py -a user@example.com -c class -n species -p -s -t 8 -o /path/to/output/directory -r /path/to/reference.fna.gz -r /path/to/reference.fsa_nt.gz /path/to/input.txt 
-      
-INPUT EXAMPLE:
+      python3 predict.py
       
 ```
