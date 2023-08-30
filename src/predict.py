@@ -13,7 +13,7 @@ from torch.nn import (
 from argparse import ArgumentParser
 import torch.nn.functional as F
 from dataset import ToxicityData
-from utils import check_loss, cal_metrics, ensemble_structures, set_seed
+from utils import check_loss, cal_metrics, ensemble_structures
 
 
 def predict(model,
@@ -43,25 +43,22 @@ def predict(model,
 
 if __name__ == "__main__":
 
-    parser = ArgumentParser()
+    parser = ArgumentParser(description='predict.py script runs tAMPer for prediction.')
 
-    parser.add_argument('-seq', '--sequences', type=str, required=True)
-    parser.add_argument('-pdb_dir', '--pdb_dir', default=f'{os.getcwd()}/data/structures/', type=str, required=True)
-    parser.add_argument('-dm', '--d_max', default=10, type=int, required=False)
-    # model configs
-    parser.add_argument('-hdim', '--hdim', default=64, type=int, required=False)
-    parser.add_argument('-sn', '--sequence_num_layers', default=1, type=int, required=False)
-    parser.add_argument('-emd', '--embedding', default="t6", type=str, required=False)
-    parser.add_argument('-gl', '--gnn_layers', default=1, type=int, required=False)
+    parser.add_argument('-seq', type=str, required=True, help='address of sequences (.faa)')
+    parser.add_argument('-pdb_dir', default=f'{os.getcwd()}/data/structures/',
+                        type=str, required=True, help='address directory of structures')
+    parser.add_argument('-dm', default=10, type=int, required=False,
+                        help='max distance to consider two connect two residues in the graph')
 
-    parser.add_argument('-ck', '--checkpoint_dir', default=f'{os.getcwd()}/checkpoints/trained/chkpnt.pt',
-                        type=str, required=False)
-    parser.add_argument('-res', '--result_dir', default=f'{os.getcwd()}/results/predictions.csv', type=str,
-                        required=False)
+    parser.add_argument('-ck', default=f'{os.getcwd()}/checkpoints/trained/chkpnt.pt',
+                        type=str, required=False, help='address of .pt checkpoint to load the model')
+    parser.add_argument('-res', default=f'{os.getcwd()}/results/predictions.csv', type=str,
+                        required=False,  help='address of results (.csv) to be saved')
 
     args = parser.parse_args()
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    set_seed(1)
+    set_seed(args.seed)
 
     if args.embedding == 't6':
         seq_inp_dim = 320

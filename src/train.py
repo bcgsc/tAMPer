@@ -105,45 +105,48 @@ def train(model: torch.nn.Module,
 
 def setup_train():
 
-    parser = ArgumentParser()
+    parser = ArgumentParser(description='train.py script runs tAMPer for training.')
     # data
-    parser.add_argument('-tr_pos', '--tr_pos', default=f'{os.getcwd()}/data/sequences/tr_pos.faa', type=str,
-                        required=True)
-    parser.add_argument('-tr_neg', '--tr_neg', default=f'{os.getcwd()}/data/sequences/tr_neg.faa', type=str,
-                        required=True)
-    parser.add_argument('-pdb_dir', '--pdb_dir', default=f'{os.getcwd()}/data/structures/', type=str,
-                        required=True)
-    parser.add_argument('-val_pos', '--val_pos', default=f'{os.getcwd()}/data/sequences/val_pos.faa',
-                        type=str, required=True)
-    parser.add_argument('-val_neg', '--val_neg', default=f'{os.getcwd()}/data/sequences/val_neg.faa',
-                        type=str, required=True)
+    parser.add_argument('-tr_pos', default=f'{os.getcwd()}/data/sequences/tr_pos.faa', type=str,
+                        required=True, help='training toxic sequences fasta file (.fasta)')
+    parser.add_argument('-tr_neg', default=f'{os.getcwd()}/data/sequences/tr_neg.faa', type=str,
+                        required=True, help='training non-toxic sequences fasta file (.fasta)')
+    parser.add_argument('-pdb_dir', default=f'{os.getcwd()}/data/structures/', type=str,
+                        required=True, help='address directory of structures')
+    parser.add_argument('-val_pos', default=f'{os.getcwd()}/data/sequences/val_pos.faa',
+                        type=str, required=True, help='validation toxic sequences fasta file (.fasta)')
+    parser.add_argument('-val_neg', default=f'{os.getcwd()}/data/sequences/val_neg.faa',
+                        type=str, required=True, help='validation non-toxic sequences fasta file (.fasta)')
     # model configs
-    parser.add_argument('-lr', '--learning_rate', default=0.0004, type=float, required=False)
-    parser.add_argument('-hdim', '--hdim', default=32, type=int, required=False)
-    parser.add_argument('-sn', '--sequence_num_layers', default=1, type=int, required=False)
-    parser.add_argument('-emd', '--embedding', default="t6", type=str, required=False)
-    parser.add_argument('-gl', '--gnn_layers', default=3, type=int, required=False)
-    parser.add_argument('-bz', '--batch_size', default=32, type=int, required=False)
-    parser.add_argument('-eph', '--num_epoch', default=50, type=int, required=False)
-    parser.add_argument('-acg', '--accum_iter', default=1, type=int, required=False)
-    parser.add_argument('-wd', '--weight_decay', default=1e-7, type=float, required=False)
-    parser.add_argument('-sqd', '--seq_dropout', default=0.0, type=float, required=False)
-    parser.add_argument('-std', '--strct_dropout', default=0.0, type=float, required=False)
-    parser.add_argument('-mdl', '--modality', default="all", type=str, required=False)
-    parser.add_argument('-dm', '--d_max', default=10, type=int, required=False)
-    parser.add_argument('-beta', '--beta', default=0.0, type=float, required=False)
-    parser.add_argument('-monitor', '--monitor_meter', default='loss', type=str, required=False)
-    parser.add_argument('-step', '--step', default=50, type=int, required=False)
-    parser.add_argument('-seed', '--seed', default=1, type=int, required=False)
+    parser.add_argument('-lr', default=0.0004, type=float, required=False, help='learning rate')
+    parser.add_argument('-hdim', default=64, type=int, required=False,
+                        help='hidden dimension of model for h_seq and h_strct')
+    parser.add_argument('-sn', default=1, type=int, required=False,
+                        help='number of GRU Layers')
+    parser.add_argument('-emd', default="t6", type=str, required=False,
+                        help='different variant of ESM2 embeddings: {t6, t12, t30, t33, t36, t48}')
+    parser.add_argument('-gl', default=1, type=int, required=False,
+                        help='number of GNNs Layers')
+    parser.add_argument('-bz', default=32, type=int, required=False, help='batch size')
+    parser.add_argument('-eph', default=50, type=int, required=False, help='max number of epochs')
+    parser.add_argument('-acg', default=1, type=int, required=False, help='gradient accumulation steps')
+    parser.add_argument('-wd', default=1e-7, type=float, required=False, help='weight decay')
+    parser.add_argument('-dm', default=10, type=int, required=False,
+                        help='max distance to consider two connect two residues in the graph')
+    parser.add_argument('-lambda', default=0.0, type=float, required=False,
+                        help='lambda in the objective function')
+    parser.add_argument('-monitor', default='loss', type=str, required=False,
+                        help='the metric to monitor for early stopping during training')
     # addresses
-    parser.add_argument('-pck', '--pre_chkpnt', default='', type=str, required=False)
-    parser.add_argument('-ck', '--checkpoint_dir', default=f'{os.getcwd()}/checkpoints/chkpnt.pt',
-                        type=str, required=False)
-    parser.add_argument('-log', '--log_file', default=f'{os.getcwd()}/logs/log.npy', type=str, required=False)
-    parser.add_argument('-res', '--res', default=f'{os.getcwd()}/results/val.csv', type=str, required=False)
+    parser.add_argument('-pck', default=f'{os.getcwd()}/checkpoints/trained/pre_GNNs.pt', type=str, required=False,
+                        help='address of pre-trained GNNs')
+    parser.add_argument('-ck', default=f'{os.getcwd()}/checkpoints/chkpnt.pt',
+                        type=str, required=False, help='address to where trained model be stored')
+    parser.add_argument('-log', default=f'{os.getcwd()}/logs/log.npy', type=str, required=False,
+                        help='address to where log file be stored')
 
     args = parser.parse_args()
-    set_seed(args.seed)
+    set_seed(1)
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     if args.embedding == 't6':
@@ -156,7 +159,7 @@ def setup_train():
         seq_inp_dim = 1280
 
     model = tAMPer(
-        input_modality=args.modality,
+        input_modality=all,
         seq_input_dim=seq_inp_dim,
         douts={'seq': args.seq_dropout, 'strct': args.strct_dropout},
         node_dims=(6, 3),
@@ -204,7 +207,7 @@ def setup_train():
 
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer,
                                                 gamma=0.5,
-                                                step_size=args.step)
+                                                step_size=50)
 
     if pre_chkpnt:
         logger.info(f"Loading the pre-trained model from {args.pre_chkpnt}")
@@ -233,3 +236,7 @@ def setup_train():
         checkpoint_address=checkpoint_dir)
 
     np.save(log_file, log)
+
+
+if __name__ == "__main__":
+    setup_train()

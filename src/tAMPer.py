@@ -75,38 +75,30 @@ class tAMPer(Module):
 
     def forward(self, sequences, graphs):
 
-        if self.modal != 'structure':
-            # sequence processing
-            idx, lengths = torch.unique(graphs.batch, return_counts=True)
-            dense_batch, mask = to_dense_batch(x=sequences,
-                                               batch=graphs.batch)
+        idx, lengths = torch.unique(graphs.batch, return_counts=True)
+        dense_batch, mask = to_dense_batch(x=sequences,
+                                           batch=graphs.batch)
 
-            pack_sequence = pack_padded_sequence(dense_batch,
-                                                 lengths=lengths.to(torch.int64).cpu(),
-                                                 batch_first=True,
-                                                 enforce_sorted=False)
+        pack_sequence = pack_padded_sequence(dense_batch,
+                                             lengths=lengths.to(torch.int64).cpu(),
+                                             batch_first=True,
+                                             enforce_sorted=False)
 
-            packed_output, _ = self.GRU(pack_sequence)
-            res_embedding, _ = pad_packed_sequence(packed_output, batch_first=True)
-            res_embedding = self.act(self.LayerNorm(res_embedding).unsqueeze(3))
-            h_seq = self.dropout['seq'](res_embedding).squeeze()
+        packed_output, _ = self.GRU(pack_sequence)
+        res_embedding, _ = pad_packed_sequence(packed_output, batch_first=True)
+        res_embedding = self.act(self.LayerNorm(res_embedding).unsqueeze(3))
+        h_seq = self.dropout['seq'](res_embedding).squeeze()
 
-        if self.modal != 'sequence':
-            # structure processing
-            strct_feats = self.GNN(h_V=(graphs.x, graphs.v),
-                                   edge_index=graphs.edge_index,
-                                   h_E=(graphs.edge_s, graphs.edge_v))
+        # structure processing
+        strct_feats = self.GNN(h_V=(graphs.x, graphs.v),
+                               edge_index=graphs.edge_index,
+                               h_E=(graphs.edge_s, graphs.edge_v))
 
-            h_strct, mask = to_dense_batch(x=strct_feats, batch=graphs.batch)
-            h_strct = self.dropout['graph'](h_strct.unsqueeze(3)).squeeze()
+        h_strct, mask = to_dense_batch(x=strct_feats, batch=graphs.batch)
+        h_strct = self.dropout['graph'](h_strct.unsqueeze(3)).squeeze()
 
         # peptide feature vector
-        if self.modal == 'sequence':
-            h_pep = h_seq
-        elif self.modal == 'structure':
-            h_pep = h_strct
-        else:
-            h_pep = torch.cat([h_seq, h_strct], dim=2)
+        h_pep = torch.cat([h_seq, h_strct], dim=2)
 
         h_pep, weights = self.MHAttention(h_pep, h_pep, h_pep, key_padding_mask=~mask)
         h_pep_mean = gnn.global_mean_pool(h_pep[mask], batch=graphs.batch)

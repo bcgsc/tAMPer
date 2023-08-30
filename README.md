@@ -87,71 +87,64 @@ The project contains the following files and directories:
 PROGRAM: train.py & predict.py
 
 USAGE(S): 
+   
+   ######## TRAIN ##########
 
-   usage: train.py [-h] -tr_pos TR_POS -tr_neg TR_NEG -pdb_dir PDB_DIR -val_pos VAL_POS -val_neg VAL_NEG [-lr LEARNING_RATE] [-hdim HDIM] [-sn SEQUENCE_NUM_LAYERS] [-emd EMBEDDING] [-gl GNN_LAYERS] [-bz BATCH_SIZE] [-eph NUM_EPOCH] [-acg ACCUM_ITER] [-wd WEIGHT_DECAY] [-dm D_MAX] [-beta BETA]
-                [-monitor MONITOR_METER] [-pck PRE_CHKPNT] [-ck CHECKPOINT_DIR] [-log LOG_FILE]
+   usage: train.py [-h] -tr_pos TR_POS -tr_neg TR_NEG -pdb_dir PDB_DIR -val_pos VAL_POS
+    -val_neg VAL_NEG [-lr LR] [-hdim HDIM] [-sn SN] [-emd EMD] [-gl GL] [-bz BZ] [-eph EPH]
+     [-acg ACG] [-wd WD] [-dm DM] [-lambda LAMBDA] [-monitor MONITOR] [-pck PCK] [-ck CK]
+     [-log LOG]
 
    train.py script runs tAMPer for training.
 
    options:
-     -h, --help            show this help message and exit
-     -tr_pos TR_POS, --tr_pos TR_POS
-                           train toxic sequences address (.faa)
-     -tr_neg TR_NEG, --tr_neg TR_NEG
-                           traib non-toxic sequences address (.faa)
-     -pdb_dir PDB_DIR, --pdb_dir PDB_DIR
-                           directory of structures
-     -val_pos VAL_POS, --val_pos VAL_POS
-                           validation toxic sequences address (.faa)
-     -val_neg VAL_NEG, --val_neg VAL_NEG
-                           validation non-toxic sequences address (.faa)
-     -lr LEARNING_RATE, --learning_rate LEARNING_RATE
-     -hdim HDIM, --hdim HDIM
-                           hidden dimension of model for h_seq and h_strct (int)
-     -sn SEQUENCE_NUM_LAYERS, --sequence_num_layers SEQUENCE_NUM_LAYERS
-                           number of GRU Layers (int)
-     -emd EMBEDDING, --embedding EMBEDDING
-                           different variant of ESM2 embeddings: {t6, t12, t30, t33, t36, t48}
-     -gl GNN_LAYERS, --gnn_layers GNN_LAYERS
-                           number of GNNs Layers (int)
-     -bz BATCH_SIZE, --batch_size BATCH_SIZE
-     -eph NUM_EPOCH, --num_epoch NUM_EPOCH
-     -acg ACCUM_ITER, --accum_iter ACCUM_ITER
-     -wd WEIGHT_DECAY, --weight_decay WEIGHT_DECAY
-     -dm D_MAX, --d_max D_MAX
-                           max distance to consider two connect two residues in the graph (int)
-     -beta BETA, --beta BETA
-                           lambda in the objective function
-     -monitor MONITOR_METER, --monitor_meter MONITOR_METER
-                           the metric to monitor for early stopping during training
-     -pck PRE_CHKPNT, --pre_chkpnt PRE_CHKPNT
-                           address of pre-trained GNNs (.pt)
-     -ck CHECKPOINT_DIR, --checkpoint_dir CHECKPOINT_DIR
-                           address to where trained model be stored (.pt)
-     -log LOG_FILE, --log_file LOG_FILE
-                           address to where log file be stored (.npy)
+      -h, --help        show this help message and exit
+      -tr_pos TR_POS    training toxic sequences fasta file (.fasta)
+      -tr_neg TR_NEG    training non-toxic sequences fasta file (.fasta)
+      -pdb_dir PDB_DIR  address directory of structures
+      -val_pos VAL_POS  validation toxic sequences fasta file (.fasta)
+      -val_neg VAL_NEG  validation non-toxic sequences fasta file (.fasta)
+      -lr LR            learning rate
+      -hdim HDIM        hidden dimension of model for h_seq and h_strct
+      -sn SN            number of GRU Layers
+      -emd EMD          different variant of ESM2 embeddings: {t6, t12, t30, t33, t36, t48}
+      -gl GL            number of GNNs Layers
+      -bz BZ            batch size
+      -eph EPH          max number of epochs
+      -acg ACG          gradient accumulation steps
+      -wd WD            weight decay of optimizer
+      -dm DM            max distance to consider two connected residues in the graph
+      -lambda LAMBDA    lambda in the objective function
+      -monitor MONITOR  the metric to monitor for early stopping during training
+      -pck PCK          address of pre-trained GNNs (.pt)
+      -ck CK            address of best performing model on validation to be stored (.pt)
+      -log LOG          address of log file (measured training & validation metrics for each epoch) to be stored (.npy)
 
-   usage: predict.py [-h] -seq SEQUENCES -pdb_dir PDB_DIR [-dm D_MAX] [-ck CHECKPOINT_DIR] [-res RESULT_DIR]
+   ######## PREDICT ##########
+
+   usage: predict.py [-h] -seq SEQ -pdb_dir PDB_DIR [-dm DM] [-ck CK] [-res RES]
 
    predict.py script runs tAMPer for prediction.
 
    options:
-     -h, --help            show this help message and exit
-     -seq SEQUENCES, --sequences SEQUENCES
-                           address of sequences (.faa)
-     -pdb_dir PDB_DIR, --pdb_dir PDB_DIR
-                           address directory of structures
-     -dm D_MAX, --d_max D_MAX
-                           max distance to consider two connect two residues in the graph
-     -ck CHECKPOINT_DIR, --checkpoint_dir CHECKPOINT_DIR
-                           address of .pt checkpoint to load the model
-     -res RESULT_DIR, --result_dir RESULT_DIR
-                           address of results (.csv) to be saved
+      -h, --help        show this help message and exit
+      -seq SEQ          address of sequences (.faa)
+      -pdb_dir PDB_DIR  address directory of structures
+      -dm DM            max distance to consider two connected residues in the graph
+      -ck CK            address of checkpoint to load the model (.pt)
+      -res RES          address of results to be saved (.npy)
 
                                                                               
 EXAMPLE(S):
-      python3 train.py
 
-      python3 predict.py
+      python3 train.py -tr_pos ../tAMPer/data/sequences/tr_pos.faa -tr_neg ../tAMPer/data/sequences/tr_pos.faa \
+      -val_pos ../tAMPer/data/sequences/tr_pos.faa -val_neg ../tAMPer/data/sequences/tr_pos.faa \
+      -pdb_dir ../tAMPer/data/structures/ -pck ../tAMPer/checkpoints/trained/pre_GNNs.pt \
+      -lr 0.0004 -hdim 64 -sn 1 -gl 1 -dm 12 -emd t30 -bz 32 -eph 100 -acg 2 -wd 1e-7 -lambda 0.2 \
+      -ck ../tAMPer/checkpoints/chkpnt.pt -log ../tAMPer/logs/log.npy
+      
+
+      python3 predict.py -seq ../tAMPer/data/test_seq.faa -pdb_dir ../tAMPer/data/structures/ \
+      -dm 12 -ck ../tAMPer/checkpoints/trained/chkpnt.pt -res ../tAMPer/results/prediction.csv
       
 ```
