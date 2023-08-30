@@ -21,6 +21,7 @@ tAMPer is a deep learning model designed for predicting the toxicity of antimicr
 <p align="center">
   <img src="https://github.com/bcgsc/tAMPer/blob/master/imgs/tAMPer.png" />
 </p>
+
 ## Files
 
 The project contains the following files and directories:
@@ -44,7 +45,7 @@ The project contains the following files and directories:
 1. Clone this repository:
 
    ```bash
-   git clone https://github.com/your-username/tAMPer.git 
+   git clone https://github.com/bcgsc/tAMPer.git
    ```
 2. Navigate to the project directory:
    ```bash
@@ -61,7 +62,7 @@ The project contains the following files and directories:
 
 ### Pip
 
-3. Create a python virtual environment environment (make sure python3 is available/loaded):
+3. Create a python virtual environment (make sure python3 is available/loaded):
    ```bash
    python3 -m venv ENV_ADDRESS
    source ENV_ADDRESS/bin/activate
