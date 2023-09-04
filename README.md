@@ -64,9 +64,10 @@ The project contains the following files and directories:
 
 3. Create a python virtual environment (make sure python3 is available/loaded):
    ```bash
-   python3 -m venv ENV_ADDRESS
-   source ENV_ADDRESS/bin/activate
    pip install --upgrade pip # upgrade pip if necessary
+   pip install virtualenv
+   virtualenv ENV_ADDRESS
+   source ENV_ADDRESS/bin/activate
    pip install -r requirements.txt
    ```
 
