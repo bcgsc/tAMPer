@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/bcgsc/tAMPer/blob/master/imgs/logo.png" />
+  <img src="https://github.com/bcgsc/tAMPer/blob/master/imgs/logo.png"/>
 </p>
 
 # tAMPer: Structure-Aware Deep Learning Model for Toxicity Prediction of Antimicrobial Peptides
