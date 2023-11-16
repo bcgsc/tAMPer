@@ -28,8 +28,7 @@ class ToxicityData(Dataset):
 
         self.device = device
         self.pdbs_path = pdbs_path
-        self.graph_builder = ProteinGraphBuilder(device=device,
-                                                 max_distance=max_d,
+        self.graph_builder = ProteinGraphBuilder(max_distance=max_d,
                                                  max_num_neighbors=128)
 
         logger.info(f"Loading structures from {pdbs_path}")
@@ -102,3 +101,78 @@ class ToxicityData(Dataset):
                             amd=self.data[index]['AMD'],
                             label=self.data[index]['label']))
         return
+
+
+class SimpleData(Dataset):
+    def __init__(self,
+                 pos_seqs: str,
+                 neg_seqs: str,
+                 graphs_dir: str,
+                 embeddings_dir: str, ):
+
+        # if pdbs_path is equal to None, the corresponding structures should be predicted
+        # TODO: a script for predicting structures with COLABFOLD would be needed later on - There you go!
+
+        super().__init__()
+        self.graphs_dir = graphs_dir
+        self.embeddings_dir = embeddings_dir
+
+        self.graphs = list()
+        self.data = merge(pos_fasta=pos_seqs, neg_fasta=neg_seqs)
+
+        logger.info(f"Loading structures from {graphs_dir}")
+        self.load_structures()
+        logger.info(f"Number of structures: {len(self.graphs)}")
+
+        logger.info(f"Loading sequence embeddings from {embeddings_dir}")
+        self.load_embeddings()
+
+    def load_embeddings(self):
+        seq_embeddings = torch.load(self.embeddings_dir)
+        for graph in self.graphs:
+            graph.embeddings = seq_embeddings[graph.id]
+
+    def len(self) -> int:
+        return len(self.graphs)
+
+    def n_class(self, label: int):
+        count = 0
+        for seq in self.data:
+            if int(seq['label']) == label:
+                count += 1
+        return count
+
+    def get(self, idx: int) -> Data:
+        return self.graphs[idx]
+
+    def load_structures(self):
+        graphs_strcutures = torch.load(self.graphs_dir)
+        for seq in self.data:
+            for graph in graphs_strcutures[seq['id']]:
+                self.graphs.append(graph)
+
+
+class PreData(Dataset):
+    def __init__(self,
+                 tr_graphs: str,
+                 val_graphs: str):
+
+        super().__init__()
+        self.graphs = list()
+
+        self.load_structures(tr_graphs)
+        self.load_structures(val_graphs)
+
+    def len(self) -> int:
+        return len(self.graphs)
+
+    def get(self, idx: int) -> Data:
+        return self.graphs[idx]
+
+    def load_structures(self, dir):
+        graphs_strcutures = torch.load(dir)
+        IDs = list(graphs_strcutures.keys())
+        for id_ in IDs:
+            for graph in graphs_strcutures[id_]:
+                self.graphs.append(graph)
+

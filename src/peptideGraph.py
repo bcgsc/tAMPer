@@ -6,12 +6,11 @@ from Bio.PDB.DSSP import DSSP
 import numpy as np
 from torch_geometric.data import Data
 from torch_geometric.nn import radius_graph
-from aminoacids import aa_charge, ss_mapping, aa_1_mapping, aa_hydropathy_score, boman_scores
+from aminoacids import aa_charge, ss_mapping, aa_1_mapping, aa_polar
 
 
 class ProteinGraphBuilder:
-    def __init__(self, device: torch.device, max_distance=10, max_num_neighbors=128):
-        self.device = device
+    def __init__(self, max_distance=10, max_num_neighbors=128):
         self.max_distance = max_distance
         self.radius_graph = RadiusGraph(max_distance,
                                         loop=False,
@@ -19,9 +18,8 @@ class ProteinGraphBuilder:
 
     def build_graph(self, id: str,
                     pdb_file: str,
-                    amd: int,
-                    label: int,) -> Data:
-
+                    amd: int = -1,
+                    label: int = -1, ) -> Data:
         parser = Bio.PDB.PDBParser()
         structure = parser.get_structure(id, pdb_file)
 
@@ -31,8 +29,6 @@ class ProteinGraphBuilder:
 
         aa = np.full((seq_length, 1), dtype=np.float32, fill_value=np.nan)
         ss = np.full((seq_length, 1), dtype=np.float32, fill_value=np.nan)
-
-        aa_dist = np.full((20, 1), dtype=np.float32, fill_value=0.0)
 
         ca_coordinates = np.full((seq_length, 3), dtype=np.float32, fill_value=np.nan)
         c_coordinates = np.full((seq_length, 3), dtype=np.float32, fill_value=np.nan)
@@ -54,8 +50,6 @@ class ProteinGraphBuilder:
             aa[idx] = aa_1_mapping[feats[1]]
             ss[idx] = ss_mapping[feats[2]]
 
-            aa_dist[aa_1_mapping[feats[1]]] += 1
-
         forward_vec, backward_vec = orientations(ca_cords=ca_coordinates)
 
         side_chain_vec = side_chains(origin=ca_coordinates,
@@ -72,12 +66,10 @@ class ProteinGraphBuilder:
 
         out = Data(
             id=id,
-            num_nodes=seq_length,
-            sequence=sequence,
+            seq=sequence,
             ss=torch.from_numpy(ss).long(),
             aa=torch.from_numpy(aa).long(),
             amd=torch.tensor(amd).to(torch.float32),
-            aa_dist=torch.from_numpy(aa_dist).to(torch.float32),
             x=angles.to(torch.float32),
             v=torch.from_numpy(node_v.reshape((node_v.shape[0], node_v.shape[1] // 3, 3))).to(torch.float32),
             y=torch.tensor(label).to(torch.float32),

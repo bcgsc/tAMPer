@@ -2,77 +2,89 @@ import torch
 import os
 import numpy as np
 import pandas as pd
-import torch_geometric.data
 from loguru import logger
 from torch_geometric.loader import DataLoader
-from torch.nn import (
-    BCEWithLogitsLoss,
-    CrossEntropyLoss,
-    Sigmoid
-)
+from tAMPer import tAMPer
 from argparse import ArgumentParser
 import torch.nn.functional as F
-from dataset import ToxicityData
-from utils import check_loss, cal_metrics, ensemble_structures
+from dataset import ToxicityData, SimpleData
+from utils import set_seed, ensemble_structures, cal_metrics
 
 
 def predict(model,
             checkpoint_folder: str,
+            data_loader: DataLoader,
             device: torch.device,
-            threshold: float) -> dict:
-
+            threshold: float,
+            result_csv: str):
     logger.info("Calculating metrics on test set")
 
     model.to(device=device)
     model.load_state_dict(torch.load(checkpoint_folder, map_location=device)['model'])
 
-    ids, weights, preds = ensemble_structures(model=model,
-                                              loader=test_dl,
-                                              embeddings=test_data.seq_embeddings,
-                                              device=device,
-                                              threshold=threshold)
+    ids, preds = ensemble_structures(model=model,
+                                     loader=data_loader,
+                                     device=device,
+                                     threshold=threshold)
 
-    preds['id'] = ids
-    preds.pop('y')
-    preds['prediction'] = preds.pop('y_hat')
-    preds['probability'] = preds.pop('score')
+    metrics = cal_metrics(preds, {})
+    df = pd.DataFrame({key: [val] for key, val in metrics.items()})
+    df.to_csv(result_csv, index=False)
 
-    df = pd.DataFrame(preds)
-    df.to_csv(args.result_dir, index=False)
+    # preds['id'] = ids
+
+    # out = pd.DataFrame.from_dict(preds)
+    # out.to_csv(result_csv, index=False)
 
 
 if __name__ == "__main__":
 
     parser = ArgumentParser(description='predict.py script runs tAMPer for prediction.')
 
-    parser.add_argument('-seq', type=str, required=True, help='address of sequences (.faa)')
-    parser.add_argument('-pdb_dir', default=f'{os.getcwd()}/data/structures/',
-                        type=str, required=True, help='address directory of structures')
+    parser.add_argument('-pos', default=f'{os.getcwd()}/data/sequences/tr_pos.faa', type=str,
+                        required=True, help='training toxic sequences fasta file (.fasta)')
+
+    parser.add_argument('-neg', default=f'{os.getcwd()}/data/sequences/tr_neg.faa', type=str,
+                        required=True, help='training non-toxic sequences fasta file (.fasta)')
+
+    parser.add_argument('-pdb', default=f'{os.getcwd()}/data/structures/', type=str,
+                        required=True, help='address directory of train structures')
+
+    parser.add_argument('-embed', default=f'{os.getcwd()}/data/embeddings/', type=str,
+                        required=True, help='address directory of train embeddings')
+
+    parser.add_argument('-hdim', default=32, type=int, required=False,
+                        help='hidden dimension of model for h_seq and h_strct')
+
+    parser.add_argument('-embedding_model', default="t6", type=str, required=False,
+                        help='different variant of ESM2 embeddings: {t6, t12}')
+
     parser.add_argument('-dm', default=10, type=int, required=False,
                         help='max distance to consider two connect two residues in the graph')
 
-    parser.add_argument('-ck', default=f'{os.getcwd()}/checkpoints/trained/chkpnt.pt',
+    parser.add_argument('-chkpnt', default=f'{os.getcwd()}/checkpoints/trained/chkpnt.pt',
                         type=str, required=False, help='address of .pt checkpoint to load the model')
-    parser.add_argument('-res', default=f'{os.getcwd()}/results/predictions.csv', type=str,
-                        required=False,  help='address of results (.csv) to be saved')
+
+    parser.add_argument('-result_csv', default=f'{os.getcwd()}/results/predictions.csv', type=str,
+                        required=False, help='address of results (.csv) to be saved')
 
     args = parser.parse_args()
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    set_seed(args.seed)
+    set_seed(1)
 
-    if args.embedding == 't6':
+    if args.embedding_model == 't6':
         seq_inp_dim = 320
-    elif args.embedding == 't12':
+    elif args.embedding_model == 't12':
         seq_inp_dim = 480
-    elif args.embedding == 't30':
+    elif args.embedding_model == 't30':
         seq_inp_dim = 640
     else:
         seq_inp_dim = 1280
 
-    test_data = ToxicityData(seqs_file=[args.sequences],
-                             pdbs_path=args.pdb_dir,
-                             device=device,
-                             max_d=args.d_max)
+    test_data = SimpleData(pos_seqs=args.pos,
+                           neg_seqs=args.neg,
+                           graphs_dir=args.pdb,
+                           embeddings_dir=args.embed)
 
     logger.info("Loading test datasets")
 
@@ -83,19 +95,22 @@ if __name__ == "__main__":
         shuffle=False)
 
     tamper = tAMPer(
+        input_modality='all',
         seq_input_dim=seq_inp_dim,
-        douts={'seq': 0.5, 'strct': 0.5},
-        node_dims=(6, 3),
+        node_dims=(9, 3),
         edge_dims=(32, 1),
-        node_h_dim=(args.hdim, 16),
-        edge_h_dim=(32, 1),
-        gru_hidden_dim=int(args.hdim / 2),  # bi-directional
-        gru_layers=args.sequence_num_layers,
-        num_gnn_layers=args.gnn_layers)
+        node_hdim=(args.hdim, 16),
+        edge_hdim=(32, 1),
+        n_heads=8,
+        gru_hdim=args.hdim,
+        n_grus=1,
+        n_gnns=1)
 
     predict(
         model=tamper,
-        checkpoint_folder=rgs.checkpoint_dir,
+        checkpoint_folder=args.chkpnt,
+        data_loader=test_dl,
         device=device,
+        result_csv=args.result_csv,
         threshold=0.5
     )

@@ -213,7 +213,6 @@ class Dropout(nn.Module):
     Combined dropout for tuples (s, V).
     Takes tuples (s, V) as input and as output.
     '''
-
     def __init__(self, drop_rate):
         super(Dropout, self).__init__()
         self.sdropout = nn.Dropout(drop_rate)

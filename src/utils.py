@@ -28,11 +28,8 @@ def check_loss(model: torch.nn.Module,
                loader: DataLoader,
                device: torch.device,
                loss_func: dict,
-               beta: float = 0.0,
-               threshold: float = 0.5,
-               embeddings: dict = None,
-               pretrain: bool = False):
-
+               lammy: float = 0.1,
+               threshold: float = 0.5):
     model.eval()
     loss_hist, ss_hist, tx_hist = list(), list(), list()
     sigmoid = Sigmoid()
@@ -41,76 +38,42 @@ def check_loss(model: torch.nn.Module,
                'y_hat': [],
                'score': []}
 
-    num_corrects = 0
-    num_samples = 0
-
     for _, graphs in enumerate(loader):
         with torch.no_grad():
+            graphs = graphs.to(device)
+            embeddings = graphs.embeddings
 
-            if not pretrain:
-                graphs = graphs.to(device)
+            preds = model(embeddings, graphs)
 
-                sequences = [embeddings[id] for id in graphs.id]
-                sequences = torch.cat(sequences).to(device)
+            tx_loss = loss_func['tx'](preds['tx'].flatten(), graphs.y)
+            ss_loss = loss_func['ss'](preds['ss'], graphs.ss.flatten())
 
-                preds = model(sequences, graphs)
+            loss = tx_loss + lammy * ss_loss
 
-                tx_loss = loss_func['tx'](preds['tx'].flatten(), graphs.y)
-                ss_loss = loss_func['ss'](preds['ss'], graphs.ss.flatten())
+            scores = sigmoid(preds['tx'].flatten()).cpu()
+            y_hat = (scores > threshold).to(torch.float32)
 
-                loss = (1 - beta) * tx_loss + beta * ss_loss
+            tx_outs['y'] += graphs.y.cpu().tolist()
+            tx_outs['y_hat'] += y_hat.tolist()
+            tx_outs['score'] += scores.tolist()
 
-                scores = sigmoid(preds['tx'].flatten()).cpu()
-                y_hat = (scores > threshold).to(torch.float32)
-
-                num_corrects += (y_hat == graphs.y.cpu()).sum().item()
-                num_samples += graphs.y.shape[0]
-
-                tx_outs['y'] += graphs.y.cpu().tolist()
-                tx_outs['y_hat'] += y_hat.tolist()
-                tx_outs['score'] += scores.tolist()
-
-                ss_hist.append(ss_loss.item())
-                tx_hist.append(tx_loss.item())
-            else:
-                graphs = graphs.to(device)
-
-                preds = model(graphs)
-                target = graphs.aa.flatten()
-                loss = loss_func['aa'](preds['aa'], target)
-
-                scores = preds['aa'].cpu()
-                y_hat = torch.argmax(scores, dim=1)
-                corrects = (y_hat == target.cpu()).to(torch.float32)
-                seqs_acc = global_mean_pool(corrects.unsqueeze(1),
-                                            batch=graphs.batch.cpu())
-
-                num_corrects += seqs_acc.squeeze().sum().item()
-                num_samples += graphs.batch.max().cpu().item() + 1
-
+            ss_hist.append(ss_loss.item())
+            tx_hist.append(tx_loss.item())
             loss_hist.append(loss.item())
 
     mean_loss = np.mean(loss_hist)
-    mean_ss, mean_tx, acc = 0.0, 0.0, 0.0
+    mean_ss = np.mean(ss_hist)
+    mean_tx = np.mean(tx_hist)
 
-    if ss_hist:
-        mean_ss = np.mean(ss_hist)
-        mean_tx = np.mean(tx_hist)
-
-    if num_samples != 0:
-        acc = float(num_corrects / num_samples)
-
-    meters = {'loss': mean_loss,
+    losses = {'loss': mean_loss,
               'tx_loss': mean_tx,
-              'ss_loss': mean_ss,
-              'accuracy': acc}
+              'ss_loss': mean_ss}
 
     logger.info(f"loss: {mean_loss}")
     logger.info(f"tx_loss: {mean_tx}")
     logger.info(f"ss_loss: {mean_ss}")
-    logger.info(f"accuracy: {acc}")
 
-    return tx_outs, meters
+    return tx_outs, losses
 
 
 def cal_metrics(y_preds: dict, meters: dict):
@@ -121,7 +84,7 @@ def cal_metrics(y_preds: dict, meters: dict):
     pre = metrics.precision_score(y, y_hat)
     f1 = metrics.f1_score(y, y_hat)
     mcc = metrics.matthews_corrcoef(y, y_hat)
-    tn, fp, fn, tp = metrics.confusion_matrix(y, y_hat, labels=[0.0, 1.0]).ravel()
+    tn, fp, _, _ = metrics.confusion_matrix(y, y_hat, labels=[0.0, 1.0]).ravel()
     specificity = float(tn / (tn + fp))
     auROC = metrics.roc_auc_score(y, score)
     precision, recall, _ = metrics.precision_recall_curve(y, score)
@@ -148,37 +111,31 @@ def cal_metrics(y_preds: dict, meters: dict):
 
 
 # only for predicting
-def ensemble_structures(model: torch.nn.Module, loader: DataLoader, embeddings: dict,
+def ensemble_structures(model: torch.nn.Module, loader: DataLoader,
                         device: torch.device, threshold: float = 0.5):
     model.eval()
 
     y_hat = OrderedDict()
     scores = OrderedDict()
     y_true = OrderedDict()
-    weights = OrderedDict()
 
     sigmoid = Sigmoid()
 
     for _, graphs in enumerate(loader):
         with torch.no_grad():
 
-            sequences = [embeddings[id] for id in graphs.id]
-
-            sequences = torch.cat(sequences).to(device)
             graphs = graphs.to(device)
+            embeddings = graphs.embeddings
 
-            preds = model(sequences, graphs)
-            weight = preds['weights']
+            preds = model(embeddings, graphs)
 
             IDs = list(graphs.id)
 
             for i in range(len(IDs)):
                 if IDs[i] in scores.keys():
                     scores[IDs[i]].append(sigmoid(preds['tx'][i]).item())
-                    weights[f'{IDs[i]}_{len(scores[IDs[i]])-1}'] = [weight[i].cpu().numpy()]
                 else:
                     scores[IDs[i]] = [sigmoid(preds['tx'][i]).item()]
-                    weights[f'{IDs[i]}_0'] = [weight[i].cpu().numpy()]
 
                 y_true[IDs[i]] = graphs.y[i].item()
 
@@ -193,8 +150,7 @@ def ensemble_structures(model: torch.nn.Module, loader: DataLoader, embeddings: 
         'y_hat': np.array(list(y_hat.values())),
         'y': np.array(list(y_true.values()))
     }
-
-    return ids, weights, y_predictions
+    return ids, y_predictions
 
 
 def monitor_metric(log_dict: dict,
@@ -205,7 +161,6 @@ def monitor_metric(log_dict: dict,
     cur_epoch = len(log_dict["val_metrics"]) - 1
 
     if 'loss' in metric:
-
         min_loss, min_epoch = np.inf, 0
 
         for i in range(len(log_dict['val_metrics'])):
@@ -218,9 +173,7 @@ def monitor_metric(log_dict: dict,
             trigger_times = 0
         else:
             trigger_times = cur_epoch - min_epoch
-
     else:
-
         max_meter, max_epoch = 0.0, 0
 
         for i in range(len(log_dict['val_metrics'])):
@@ -244,13 +197,11 @@ def monitor_metric(log_dict: dict,
         return False
 
 
-def merge(fasta_seqs: list) -> list:
-    pos_fasta, neg_fasta = fasta_seqs
+def merge(pos_fasta: str, neg_fasta: str) -> list:
     data = []
 
     with open(pos_fasta) as handle:
         for record in SeqIO.parse(handle, "fasta"):
-
             data.append({'id': str(record.id),
                          'seq': str(record.seq),
                          'AMD': 1 if '_AMD' in record.id else 0,
@@ -278,7 +229,6 @@ def read_fasta(fasta_file: str) -> list:
 
 
 def retrieve_best_model(log_dict: dict, metric: str):
-
     best_epoch = 0
 
     if metric == 'loss':
@@ -295,3 +245,56 @@ def retrieve_best_model(log_dict: dict, metric: str):
                 max_meter = log_dict["val_metrics"][i][metric]
 
     return log_dict["val_metrics"][best_epoch]
+
+
+def calculate_pos_weight(n_pos: int, n_neg: int, beta: float):
+    samples_per_class = torch.tensor([n_neg, n_pos])
+    effective_num = 1.0 - torch.pow(beta, samples_per_class)
+
+    weights = (1.0 - beta) / effective_num
+    weights = weights / (torch.sum(weights) * 2)
+
+    pos_weight = weights[1] / weights[0]
+
+    return pos_weight
+
+
+def pre_metrics(model: torch.nn.Module,
+                loader: DataLoader,
+                device: torch.device,
+                loss_func: torch.nn.Module, ):
+    model.eval()
+    loss_hist = list()
+
+    num_corrects = 0
+    num_samples = 0
+
+    for _, graphs in enumerate(loader):
+        with torch.no_grad():
+            graphs = graphs.to(device)
+
+            preds = model(graphs)
+            target = graphs.aa.flatten()
+            loss = loss_func(preds, target)
+
+            scores = preds.cpu()
+            y_hat = torch.argmax(scores, dim=1)
+            corrects = (y_hat == target.cpu()).to(torch.float32)
+            seqs_acc = global_mean_pool(corrects.unsqueeze(1),
+                                        batch=graphs.batch.cpu())
+
+            num_corrects += seqs_acc.squeeze().sum().item()
+            num_samples += graphs.batch.max().cpu().item() + 1
+
+        loss_hist.append(loss.item())
+
+    mean_loss = np.mean(loss_hist)
+    acc = float(num_corrects / num_samples)
+
+    meters = {'loss': mean_loss,
+              'acc': acc}
+
+    logger.info(f"loss: {mean_loss}")
+    logger.info(f"accuracy: {acc}")
+
+    return meters

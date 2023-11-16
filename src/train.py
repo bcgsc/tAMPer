@@ -1,30 +1,26 @@
 import torch
 import numpy as np
-import pandas as pd
 import os
 from argparse import ArgumentParser
-import torch_geometric.data
 from loguru import logger
 from torch_geometric.loader import DataLoader
 from torch.optim import Adam
 from torch.nn import (
     BCEWithLogitsLoss,
-    CrossEntropyLoss,
-    Sigmoid)
+    CrossEntropyLoss, )
 
-from dataset import ToxicityData
-from utils import cal_metrics, check_loss, monitor_metric, set_seed, retrieve_best_model
+from dataset import SimpleData
+from utils import cal_metrics, check_loss, monitor_metric, set_seed, calculate_pos_weight
 from tAMPer import tAMPer
 
 
-def train(model: torch.nn.Module,
+def train(model: tAMPer,
           max_num_epochs: int,
           check_val_every: int,
           training_loader: DataLoader,
           val_loader: DataLoader,
-          embeddings: dict,
           loss_fun: dict,
-          beta: float,
+          lammy: float,
           optimizer: torch.optim,
           accum_iter: int,
           device: torch.device,
@@ -32,7 +28,6 @@ def train(model: torch.nn.Module,
           checkpoint_address: str,
           patience: int,
           scheduler: torch.optim.lr_scheduler):
-
     log_dict = {"train_metrics": [], "val_metrics": []}
 
     for epoch in range(max_num_epochs):
@@ -43,17 +38,15 @@ def train(model: torch.nn.Module,
 
         for iteration, graphs in enumerate(training_loader):
 
-            sequences = [embeddings['train'][id] for id in graphs.id]
-
-            sequences = torch.cat(sequences).to(device)
             graphs = graphs.to(device)
+            embeddings = graphs.embeddings
 
-            preds = model(sequences, graphs)
+            preds = model(embeddings, graphs)
 
             tx_loss = loss_fun['tx'](preds['tx'].flatten(), graphs.y)
             ss_loss = loss_fun['ss'](preds['ss'], graphs.ss.flatten())
 
-            loss = (1 - beta) * tx_loss + beta * ss_loss
+            loss = (1 - lammy) * tx_loss + lammy * ss_loss
 
             loss = loss / accum_iter
             loss.backward()
@@ -65,25 +58,23 @@ def train(model: torch.nn.Module,
         if epoch % check_val_every == 0:
 
             logger.info("Training metrics:")
-            tr_pred, tr_metrics = check_loss(model=model,
-                                             loader=training_loader,
-                                             beta=beta,
-                                             embeddings=embeddings['train'],
-                                             device=device,
-                                             loss_func=loss_fun,
-                                             threshold=0.5)
+            tr_pred, tr_losses = check_loss(model=model,
+                                            loader=training_loader,
+                                            lammy=lammy,
+                                            device=device,
+                                            loss_func=loss_fun,
+                                            threshold=0.5)
 
             logger.info("Validation metrics:")
-            val_pred, val_metrics = check_loss(model=model,
-                                               loader=val_loader,
-                                               beta=beta,
-                                               embeddings=embeddings['val'],
-                                               device=device,
-                                               loss_func=loss_fun,
-                                               threshold=0.5)
+            val_pred, val_losses = check_loss(model=model,
+                                              loader=val_loader,
+                                              lammy=lammy,
+                                              device=device,
+                                              loss_func=loss_fun,
+                                              threshold=0.5)
 
-            tr_metrics = cal_metrics(tr_pred, tr_metrics)
-            val_metrics = cal_metrics(val_pred, val_metrics)
+            tr_metrics = cal_metrics(tr_pred, tr_losses)
+            val_metrics = cal_metrics(val_pred, val_losses)
 
             log_dict["train_metrics"].append(tr_metrics)
             log_dict["val_metrics"].append(val_metrics)
@@ -104,44 +95,70 @@ def train(model: torch.nn.Module,
 
 
 def setup_train():
-
     parser = ArgumentParser(description='train.py script runs tAMPer for training.')
     # data
     parser.add_argument('-tr_pos', default=f'{os.getcwd()}/data/sequences/tr_pos.faa', type=str,
                         required=True, help='training toxic sequences fasta file (.fasta)')
+
     parser.add_argument('-tr_neg', default=f'{os.getcwd()}/data/sequences/tr_neg.faa', type=str,
                         required=True, help='training non-toxic sequences fasta file (.fasta)')
-    parser.add_argument('-pdb_dir', default=f'{os.getcwd()}/data/structures/', type=str,
-                        required=True, help='address directory of structures')
+
+    parser.add_argument('-tr_pdb', default=f'{os.getcwd()}/data/structures/', type=str,
+                        required=True, help='address directory of train structures')
+
+    parser.add_argument('-tr_embed', default=f'{os.getcwd()}/data/embeddings/', type=str,
+                        required=True, help='address directory of train embeddings')
+
     parser.add_argument('-val_pos', default=f'{os.getcwd()}/data/sequences/val_pos.faa',
                         type=str, required=True, help='validation toxic sequences fasta file (.fasta)')
+
     parser.add_argument('-val_neg', default=f'{os.getcwd()}/data/sequences/val_neg.faa',
                         type=str, required=True, help='validation non-toxic sequences fasta file (.fasta)')
+
+    parser.add_argument('-val_pdb', default=f'{os.getcwd()}/data/structures/', type=str,
+                        required=True, help='address directory of val structures')
+
+    parser.add_argument('-val_embed', default=f'{os.getcwd()}/data/embeddings/', type=str,
+                        required=True, help='address directory of val embeddings')
     # model configs
     parser.add_argument('-lr', default=0.0004, type=float, required=False, help='learning rate')
-    parser.add_argument('-hdim', default=64, type=int, required=False,
+
+    parser.add_argument('-hdim', default=32, type=int, required=False,
                         help='hidden dimension of model for h_seq and h_strct')
-    parser.add_argument('-sn', default=1, type=int, required=False,
+
+    parser.add_argument('-gru_layers', default=1, type=int, required=False,
                         help='number of GRU Layers')
-    parser.add_argument('-emd', default="t6", type=str, required=False,
+
+    parser.add_argument('-embedding_model', default="t12", type=str, required=False,
                         help='different variant of ESM2 embeddings: {t6, t12, t30, t33, t36, t48}')
-    parser.add_argument('-gl', default=1, type=int, required=False,
-                        help='number of GNNs Layers')
-    parser.add_argument('-bz', default=32, type=int, required=False, help='batch size')
-    parser.add_argument('-eph', default=50, type=int, required=False, help='max number of epochs')
-    parser.add_argument('-acg', default=1, type=int, required=False, help='gradient accumulation steps')
-    parser.add_argument('-wd', default=1e-7, type=float, required=False, help='weight decay')
-    parser.add_argument('-dm', default=10, type=int, required=False,
+
+    parser.add_argument('-modality', default='all', type=str, required=False, help='Used modality')
+
+    parser.add_argument('-gnn_layers', default=1, type=int, required=False, help='number of GNNs Layers')
+
+    parser.add_argument('-batch_size', default=32, type=int, required=False, help='batch size')
+
+    parser.add_argument('-n_epochs', default=50, type=int, required=False, help='max number of epochs')
+
+    parser.add_argument('-gard_acc', default=1, type=int, required=False, help='gradient accumulation steps')
+
+    parser.add_argument('-weight_decay', default=1e-7, type=float, required=False, help='weight decay')
+
+    parser.add_argument('-dmax', default=12, type=int, required=False,
                         help='max distance to consider two connect two residues in the graph')
-    parser.add_argument('-lambda', default=0.0, type=float, required=False,
-                        help='lambda in the objective function')
-    parser.add_argument('-monitor', default='loss', type=str, required=False,
+
+    parser.add_argument('-lammy', default=0.0, type=float, required=False,
+                        help='lammy in the objective function')
+
+    parser.add_argument('-monitor', default='f1', type=str, required=False,
                         help='the metric to monitor for early stopping during training')
     # addresses
-    parser.add_argument('-pck', default=f'{os.getcwd()}/checkpoints/trained/pre_GNNs.pt', type=str, required=False,
+    parser.add_argument('-pre_chkpnt', default='', type=str, required=False,
                         help='address of pre-trained GNNs')
-    parser.add_argument('-ck', default=f'{os.getcwd()}/checkpoints/chkpnt.pt',
+
+    parser.add_argument('-chkpnt', default=f'{os.getcwd()}/checkpoints/chkpnt.pt',
                         type=str, required=False, help='address to where trained model be stored')
+
     parser.add_argument('-log', default=f'{os.getcwd()}/logs/log.npy', type=str, required=False,
                         help='address to where log file be stored')
 
@@ -149,42 +166,54 @@ def setup_train():
     set_seed(1)
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    if args.embedding == 't6':
+    if args.embedding_model == 't6':
         seq_inp_dim = 320
-    elif args.embedding == 't12':
+    elif args.embedding_model == 't12':
         seq_inp_dim = 480
-    elif args.embedding == 't30':
+    elif args.embedding_model == 't30':
         seq_inp_dim = 640
     else:
         seq_inp_dim = 1280
 
     model = tAMPer(
-        input_modality=all,
+        input_modality=args.modality,
         seq_input_dim=seq_inp_dim,
-        douts={'seq': args.seq_dropout, 'strct': args.strct_dropout},
         node_dims=(6, 3),
         edge_dims=(32, 1),
-        node_h_dim=(args.hdim, 16),
-        edge_h_dim=(32, 1),
-        gru_hidden_dim=int(args.hdim / 2),  # bi-directional
-        gru_layers=args.sequence_num_layers,
-        num_gnn_layers=args.gnn_layers)
+        node_hdim=(args.hdim, 16),
+        edge_hdim=(32, 1),
+        n_heads=args.n_heads,
+        gru_hdim=args.hdim,
+        n_grus=args.gru_layers,
+        n_gnns=args.gnn_layers)
 
     logger.info('Training set:')
 
-    tr_data = ToxicityData(seqs_file=[args.tr_neg, args.tr_pos],
-                           pdbs_path=args.pdb_dir,
-                           device=device,
-                           embeddings_dir=tr_embed,
-                           max_d=args.d_max)
+    # tr_data = ToxicityData(seqs_file=[args.tr_neg, args.tr_pos],
+    #                        pdbs_path=args.pdb_dir,
+    #                        device=device,q
+    #                        embeddings_dir=tr_embed,
+    #                        max_d=args.d_max)
+
+    tr_data = SimpleData(
+        pos_seqs=args.tr_pos,
+        neg_seqs=args.tr_neg,
+        graphs_dir=args.tr_pdb,
+        embeddings_dir=args.tr_embed)
 
     logger.info('Validation set:')
 
-    val_data = ToxicityData(seqs_file=[args.val_neg, args.val_pos],
-                            pdbs_path=args.pdb_dir,
-                            device=device,
-                            embeddings_dir=val_embed,
-                            max_d=args.d_max)
+    val_data = SimpleData(
+        pos_seqs=args.val_pos,
+        neg_seqs=args.val_neg,
+        graphs_dir=args.val_pdb,
+        embeddings_dir=args.val_embed)
+
+    # val_data = ToxicityData(seqs_file=[args.val_neg, args.val_pos],
+    #                         pdbs_path=args.pdb_dir,
+    #                         device=device,
+    #                         embeddings_dir=val_embed,
+    #                         max_d=args.d_max)
 
     train_dl = DataLoader(
         dataset=tr_data,
@@ -202,40 +231,39 @@ def setup_train():
                      'ss': CrossEntropyLoss()}
 
     optimizer = Adam(model.parameters(),
-                     lr=args.learning_rate,
+                     lr=args.lr,
                      weight_decay=args.weight_decay)
 
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer,
                                                 gamma=0.5,
                                                 step_size=50)
 
-    if pre_chkpnt:
-        logger.info(f"Loading the pre-trained model from {args.pre_chkpnt}")
-        model.GNN.load_state_dict(torch.load(args.pre_chkpnt)['model'].layers, strict=True)
-
     model.to(device=device)
+
+    if args.pre_chkpnt:
+        logger.info(f"Loading the pre-trained model from {args.pre_chkpnt}")
+        state_dict = torch.load(args.pre_chkpnt, map_location=device)['model']
+        model.load_state_dict(state_dict, strict=False)
 
     logger.info("Training:")
 
     log = train(
         model=model,
-        accum_iter=args.accum_iter,
-        max_num_epochs=args.num_epoch,
+        accum_iter=args.gard_acc,
+        max_num_epochs=args.n_epochs,
         check_val_every=1,
         training_loader=train_dl,
         val_loader=val_dl,
-        embeddings={'train': tr_data.seq_embeddings,
-                    'val': val_data.seq_embeddings},
         loss_fun=loss_function,
-        beta=args.beta,
+        lammy=args.lammy,
         optimizer=optimizer,
         scheduler=scheduler,
         device=device,
-        patience=args.patience,
-        monitor=args.monitor_meter,
-        checkpoint_address=checkpoint_dir)
+        patience=20,
+        monitor=args.monitor,
+        checkpoint_address=args.chkpnt)
 
-    np.save(log_file, log)
+    np.save(args.log, log)
 
 
 if __name__ == "__main__":
