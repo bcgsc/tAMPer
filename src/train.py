@@ -189,31 +189,19 @@ def setup_train():
 
     logger.info('Training set:')
 
-    # tr_data = ToxicityData(seqs_file=[args.tr_neg, args.tr_pos],
-    #                        pdbs_path=args.pdb_dir,
-    #                        device=device,q
-    #                        embeddings_dir=tr_embed,
-    #                        max_d=args.d_max)
-
-    tr_data = SimpleData(
-        pos_seqs=args.tr_pos,
-        neg_seqs=args.tr_neg,
-        graphs_dir=args.tr_pdb,
-        embeddings_dir=args.tr_embed)
+    tr_data = ToxicityData(pos_seqs=args.tr_pos,
+                           neg_seqs=args.tr_neg,
+                           pdbs_path=args.pdb_dir,
+                           embedding_model=args.embedding_model,
+                           max_d=args.d_max)
 
     logger.info('Validation set:')
 
-    val_data = SimpleData(
-        pos_seqs=args.val_pos,
-        neg_seqs=args.val_neg,
-        graphs_dir=args.val_pdb,
-        embeddings_dir=args.val_embed)
-
-    # val_data = ToxicityData(seqs_file=[args.val_neg, args.val_pos],
-    #                         pdbs_path=args.pdb_dir,
-    #                         device=device,
-    #                         embeddings_dir=val_embed,
-    #                         max_d=args.d_max)
+    val_data = ToxicityData(pos_seqs=args.val_pos,
+                            neg_seqs=args.val_neg,
+                            pdbs_path=args.val_pdb,
+                            embedding_model=args.embedding_model,
+                            max_d=args.d_max)
 
     train_dl = DataLoader(
         dataset=tr_data,
@@ -237,7 +225,6 @@ def setup_train():
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer,
                                                 gamma=0.5,
                                                 step_size=50)
-
     model.to(device=device)
 
     if args.pre_chkpnt:

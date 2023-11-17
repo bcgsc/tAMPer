@@ -213,7 +213,6 @@ def merge(pos_fasta: str, neg_fasta: str) -> list:
                          'seq': str(record.seq),
                          'AMD': 1 if '_AMD' in record.id else 0,
                          'label': 0})
-
     return data
 
 

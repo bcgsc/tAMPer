@@ -1,0 +1,75 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="DuplicatedCode" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <Languages>
+        <language minSize="1162" name="Python" />
+      </Languages>
+    </inspection_tool>
+    <inspection_tool class="PyDefaultArgumentInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <value>
+          <list size="16">
+            <item index="0" class="java.lang.String" itemvalue="scipy" />
+            <item index="1" class="java.lang.String" itemvalue="torch-scatter" />
+            <item index="2" class="java.lang.String" itemvalue="joblib" />
+            <item index="3" class="java.lang.String" itemvalue="threadpoolctl" />
+            <item index="4" class="java.lang.String" itemvalue="scikit-learn" />
+            <item index="5" class="java.lang.String" itemvalue="torch-cluster" />
+            <item index="6" class="java.lang.String" itemvalue="tzdata" />
+            <item index="7" class="java.lang.String" itemvalue="MarkupSafe" />
+            <item index="8" class="java.lang.String" itemvalue="numpy" />
+            <item index="9" class="java.lang.String" itemvalue="loguru" />
+            <item index="10" class="java.lang.String" itemvalue="Jinja2" />
+            <item index="11" class="java.lang.String" itemvalue="psutil" />
+            <item index="12" class="java.lang.String" itemvalue="pandas" />
+            <item index="13" class="java.lang.String" itemvalue="pytz" />
+            <item index="14" class="java.lang.String" itemvalue="pyparsing" />
+            <item index="15" class="java.lang.String" itemvalue="torch-geometric" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyPep8Inspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <option name="ignoredErrors">
+        <list>
+          <option value="W605" />
+          <option value="E131" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyPep8NamingInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <option name="ignoredErrors">
+        <list>
+          <option value="N806" />
+          <option value="N812" />
+          <option value="N801" />
+          <option value="N803" />
+          <option value="N802" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyShadowingBuiltinsInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <option name="ignoredNames">
+        <list>
+          <option value="id" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="false" level="WARNING" enabled_by_default="false">
+      <option name="ignoredIdentifiers">
+        <list>
+          <option value="torch_geometric.data.batch.Batch.primary_structure" />
+          <option value="torch_geometric.data.batch.Batch.secondary_structure" />
+          <option value="torch_geometric.data.batch.Batch.x" />
+          <option value="torch_geometric.data.batch.Batch.edge_index" />
+          <option value="torch_geometric.data.batch.Batch.label" />
+          <option value="torch_geometric.data.batch.Batch.y" />
+          <option value="torch_geometric.data.batch.Batch.batch" />
+          <option value="bool.sum" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>

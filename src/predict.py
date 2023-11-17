@@ -27,14 +27,14 @@ def predict(model,
                                      device=device,
                                      threshold=threshold)
 
-    metrics = cal_metrics(preds, {})
-    df = pd.DataFrame({key: [val] for key, val in metrics.items()})
-    df.to_csv(result_csv, index=False)
+    # metrics = cal_metrics(preds, {})
+    # df = pd.DataFrame({key: [val] for key, val in metrics.items()})
+    # df.to_csv(result_csv, index=False)
 
-    # preds['id'] = ids
+    preds['id'] = ids
 
-    # out = pd.DataFrame.from_dict(preds)
-    # out.to_csv(result_csv, index=False)
+    out = pd.DataFrame.from_dict(preds)
+    out.to_csv(result_csv, index=False)
 
 
 if __name__ == "__main__":
