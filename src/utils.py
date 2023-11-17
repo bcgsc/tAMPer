@@ -48,7 +48,7 @@ def check_loss(model: torch.nn.Module,
             tx_loss = loss_func['tx'](preds['tx'].flatten(), graphs.y)
             ss_loss = loss_func['ss'](preds['ss'], graphs.ss.flatten())
 
-            loss = tx_loss + lammy * ss_loss
+            loss = (1 - lammy) * tx_loss + lammy * ss_loss
 
             scores = sigmoid(preds['tx'].flatten()).cpu()
             y_hat = (scores > threshold).to(torch.float32)

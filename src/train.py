@@ -28,6 +28,7 @@ def train(model: tAMPer,
           checkpoint_address: str,
           patience: int,
           scheduler: torch.optim.lr_scheduler):
+
     log_dict = {"train_metrics": [], "val_metrics": []}
 
     for epoch in range(max_num_epochs):
