@@ -158,6 +158,7 @@ def monitor_metric(log_dict: dict,
                    chkpnt_addr: str,
                    patience: int,
                    metric: str):
+    
     cur_epoch = len(log_dict["val_metrics"]) - 1
 
     if 'loss' in metric:
@@ -216,14 +217,14 @@ def merge(pos_fasta: str, neg_fasta: str) -> list:
     return data
 
 
-def read_fasta(fasta_file: str) -> list:
+def read_fasta(fasta_file: str, label: int = -1) -> list:
     data = []
     with open(fasta_file) as handle:
         for record in SeqIO.parse(handle, "fasta"):
             data.append({'id': str(record.id),
                          'seq': str(record.seq),
                          'AMD': 1 if '_AMD' in record.id else 0,
-                         'label': -1})
+                         'label': label})
     return data
 
 

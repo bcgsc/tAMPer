@@ -443,8 +443,7 @@ class GVP_GNN(nn.Module):
         ns, _ = node_h_dim
         self.W_out = nn.Sequential(
             LayerNorm(node_h_dim),
-            GVP(node_h_dim, (ns, 0)),
-            LeakyReLU())
+            GVP(node_h_dim, (ns, 0)))
 
     def forward(self, h_V, edge_index, h_E):
 

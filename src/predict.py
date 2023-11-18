@@ -7,16 +7,17 @@ from torch_geometric.loader import DataLoader
 from tAMPer import tAMPer
 from argparse import ArgumentParser
 import torch.nn.functional as F
-from dataset import ToxicityData, SimpleData
+from dataset import ToxicityData
 from utils import set_seed, ensemble_structures, cal_metrics
 
 
-def predict(model,
+def predict(model: torch.nn.Module,
             checkpoint_folder: str,
             data_loader: DataLoader,
             device: torch.device,
             threshold: float,
             result_csv: str):
+
     logger.info("Calculating metrics on test set")
 
     model.to(device=device)
@@ -41,25 +42,19 @@ if __name__ == "__main__":
 
     parser = ArgumentParser(description='predict.py script runs tAMPer for prediction.')
 
-    parser.add_argument('-pos', default=f'{os.getcwd()}/data/sequences/tr_pos.faa', type=str,
-                        required=True, help='training toxic sequences fasta file (.fasta)')
+    parser.add_argument('-seqs', default=f'{os.getcwd()}/data/sequences/seqs.faa', type=str,
+                        required=True, help='sequences fasta file for prediction (.fasta)')
 
-    parser.add_argument('-neg', default=f'{os.getcwd()}/data/sequences/tr_neg.faa', type=str,
-                        required=True, help='training non-toxic sequences fasta file (.fasta)')
-
-    parser.add_argument('-pdb', default=f'{os.getcwd()}/data/structures/', type=str,
+    parser.add_argument('-pdbs', default=f'{os.getcwd()}/data/structures/', type=str,
                         required=True, help='address directory of train structures')
-
-    parser.add_argument('-embed', default=f'{os.getcwd()}/data/embeddings/', type=str,
-                        required=True, help='address directory of train embeddings')
 
     parser.add_argument('-hdim', default=32, type=int, required=False,
                         help='hidden dimension of model for h_seq and h_strct')
 
-    parser.add_argument('-embedding_model', default="t6", type=str, required=False,
+    parser.add_argument('-embedding_model', default="t12", type=str, required=False,
                         help='different variant of ESM2 embeddings: {t6, t12}')
 
-    parser.add_argument('-dm', default=10, type=int, required=False,
+    parser.add_argument('-d_max', default=10, type=int, required=False,
                         help='max distance to consider two connect two residues in the graph')
 
     parser.add_argument('-chkpnt', default=f'{os.getcwd()}/checkpoints/trained/chkpnt.pt',
@@ -81,15 +76,15 @@ if __name__ == "__main__":
     else:
         seq_inp_dim = 1280
 
-    test_data = SimpleData(pos_seqs=args.pos,
-                           neg_seqs=args.neg,
-                           graphs_dir=args.pdb,
-                           embeddings_dir=args.embed)
+    data = ToxicityData(seqs=args.seqs,
+                        pdbs_path=args.pdbs,
+                        embedding_model=args.embedding_model,
+                        max_d=args.d_max)
 
     logger.info("Loading test datasets")
 
     test_dl = DataLoader(
-        dataset=test_data,
+        dataset=data,
         batch_size=32,
         num_workers=8,
         shuffle=False)
@@ -97,7 +92,7 @@ if __name__ == "__main__":
     tamper = tAMPer(
         input_modality='all',
         seq_input_dim=seq_inp_dim,
-        node_dims=(9, 3),
+        node_dims=(6, 3),
         edge_dims=(32, 1),
         node_hdim=(args.hdim, 16),
         edge_hdim=(32, 1),

@@ -9,7 +9,7 @@ from torch.nn import (
     BCEWithLogitsLoss,
     CrossEntropyLoss, )
 
-from dataset import SimpleData
+from dataset import ToxicityData
 from utils import cal_metrics, check_loss, monitor_metric, set_seed, calculate_pos_weight
 from tAMPer import tAMPer
 
@@ -99,32 +99,32 @@ def setup_train():
     parser = ArgumentParser(description='train.py script runs tAMPer for training.')
     # data
     parser.add_argument('-tr_pos', default=f'{os.getcwd()}/data/sequences/tr_pos.faa', type=str,
-                        required=True, help='training toxic sequences fasta file (.fasta)')
+                        required=False, help='training toxic sequences fasta file (.fasta)')
 
     parser.add_argument('-tr_neg', default=f'{os.getcwd()}/data/sequences/tr_neg.faa', type=str,
-                        required=True, help='training non-toxic sequences fasta file (.fasta)')
+                        required=False, help='training non-toxic sequences fasta file (.fasta)')
 
     parser.add_argument('-tr_pdb', default=f'{os.getcwd()}/data/structures/', type=str,
-                        required=True, help='address directory of train structures')
+                        required=False, help='address directory of train structures')
 
     parser.add_argument('-tr_embed', default=f'{os.getcwd()}/data/embeddings/', type=str,
-                        required=True, help='address directory of train embeddings')
+                        required=False, help='address directory of train embeddings')
 
     parser.add_argument('-val_pos', default=f'{os.getcwd()}/data/sequences/val_pos.faa',
-                        type=str, required=True, help='validation toxic sequences fasta file (.fasta)')
+                        type=str, required=False, help='validation toxic sequences fasta file (.fasta)')
 
     parser.add_argument('-val_neg', default=f'{os.getcwd()}/data/sequences/val_neg.faa',
-                        type=str, required=True, help='validation non-toxic sequences fasta file (.fasta)')
+                        type=str, required=False, help='validation non-toxic sequences fasta file (.fasta)')
 
     parser.add_argument('-val_pdb', default=f'{os.getcwd()}/data/structures/', type=str,
-                        required=True, help='address directory of val structures')
+                        required=False, help='address directory of val structures')
 
     parser.add_argument('-val_embed', default=f'{os.getcwd()}/data/embeddings/', type=str,
-                        required=True, help='address directory of val embeddings')
+                        required=False, help='address directory of val embeddings')
     # model configs
     parser.add_argument('-lr', default=0.0004, type=float, required=False, help='learning rate')
 
-    parser.add_argument('-hdim', default=32, type=int, required=False,
+    parser.add_argument('-hdim', default=64, type=int, required=False,
                         help='hidden dimension of model for h_seq and h_strct')
 
     parser.add_argument('-gru_layers', default=1, type=int, required=False,
@@ -183,7 +183,7 @@ def setup_train():
         edge_dims=(32, 1),
         node_hdim=(args.hdim, 16),
         edge_hdim=(32, 1),
-        n_heads=args.n_heads,
+        n_heads=8,
         gru_hdim=args.hdim,
         n_grus=args.gru_layers,
         n_gnns=args.gnn_layers)

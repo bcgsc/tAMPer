@@ -6,7 +6,6 @@ from torch.nn.utils.rnn import (
 from torch.nn import (
     Module,
     MultiheadAttention,
-    LeakyReLU,
     LayerNorm,
     GRU,
     Linear,
@@ -63,11 +62,13 @@ class tAMPer(Module):
         self.dropout = torch.nn.ModuleDict({
             'seq': Dropout3d(),
             'graph': Dropout3d(),
-            'out': Dropout()
-        })
+            'out': Dropout()})
 
-        self.LayerNorm = LayerNorm(normalized_shape=gru_hdim)
-        self.act = LeakyReLU()
+        self.LayerNorm = torch.nn.ModuleDict({
+            'seq': LayerNorm(normalized_shape=gru_hdim),
+            'graph': LayerNorm(normalized_shape=gnn_dim),
+            'att': LayerNorm(normalized_shape=att_dim if input_modality == 'all' else gnn_dim)
+        })
         # +1 is added for the C_terminal amidation modification
         self.tox_fc = Linear(att_dim + 1 if input_modality == 'all' else gnn_dim + 1, n_tx)
         self.ss_fc = Linear(att_dim if input_modality == 'all' else gnn_dim, n_ss)
@@ -87,7 +88,7 @@ class tAMPer(Module):
 
             packed_output, _ = self.GRU(pack_sequence)
             h_seq, _ = pad_packed_sequence(packed_output, batch_first=True)
-            h_seq = self.act(self.LayerNorm(res_embedding).unsqueeze(3))
+            h_seq = self.LayerNorm['seq'](h_seq).unsqueeze(3)
             h_seq = self.dropout['seq'](h_seq).squeeze(3)
 
         if self.modal != 'sequence':
@@ -97,6 +98,7 @@ class tAMPer(Module):
                                    h_E=(graphs.edge_s, graphs.edge_v))
 
             h_strct, mask = to_dense_batch(x=strct_feats, batch=graphs.batch)
+            h_strct = self.LayerNorm['graph'](h_strct)
             h_strct = self.dropout['graph'](h_strct.unsqueeze(3)).squeeze(3)
 
         # peptide feature vector
@@ -108,6 +110,7 @@ class tAMPer(Module):
             h_pep = torch.cat([h_seq, h_strct], dim=2)
 
         h_pep, att_weights = self.MHAttention(h_pep, h_pep, h_pep, key_padding_mask=~mask)
+        h_pep = self.LayerNorm['att'](h_pep)
 
         h_pep_mean = gnn.global_mean_pool(h_pep[mask], batch=graphs.batch)
         h_pep_mean = self.dropout['out'](h_pep_mean)
@@ -117,7 +120,6 @@ class tAMPer(Module):
         out = {'tx': self.tox_fc(h_pep_mean),
                'ss': self.ss_fc(h_pep[mask]),
                'att_weights': att_weights}
-
         return out
 
 
