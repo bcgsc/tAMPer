@@ -66,7 +66,9 @@ def train(model: tAMPer,
                                             loss_func=loss_fun,
                                             threshold=0.5)
 
+            tr_metrics = cal_metrics(tr_pred, tr_losses)
             logger.info("Validation metrics:")
+
             val_pred, val_losses = check_loss(model=model,
                                               loader=val_loader,
                                               lammy=lammy,
@@ -74,7 +76,6 @@ def train(model: tAMPer,
                                               loss_func=loss_fun,
                                               threshold=0.5)
 
-            tr_metrics = cal_metrics(tr_pred, tr_losses)
             val_metrics = cal_metrics(val_pred, val_losses)
 
             log_dict["train_metrics"].append(tr_metrics)
@@ -107,9 +108,6 @@ def setup_train():
     parser.add_argument('-tr_pdb', default=f'{os.getcwd()}/data/structures/', type=str,
                         required=False, help='address directory of train structures')
 
-    parser.add_argument('-tr_embed', default=f'{os.getcwd()}/data/embeddings/', type=str,
-                        required=False, help='address directory of train embeddings')
-
     parser.add_argument('-val_pos', default=f'{os.getcwd()}/data/sequences/val_pos.faa',
                         type=str, required=False, help='validation toxic sequences fasta file (.fasta)')
 
@@ -118,9 +116,6 @@ def setup_train():
 
     parser.add_argument('-val_pdb', default=f'{os.getcwd()}/data/structures/', type=str,
                         required=False, help='address directory of val structures')
-
-    parser.add_argument('-val_embed', default=f'{os.getcwd()}/data/embeddings/', type=str,
-                        required=False, help='address directory of val embeddings')
     # model configs
     parser.add_argument('-lr', default=0.0004, type=float, required=False, help='learning rate')
 
@@ -145,7 +140,7 @@ def setup_train():
 
     parser.add_argument('-weight_decay', default=1e-7, type=float, required=False, help='weight decay')
 
-    parser.add_argument('-dmax', default=12, type=int, required=False,
+    parser.add_argument('-d_max', default=12, type=int, required=False,
                         help='max distance to consider two connect two residues in the graph')
 
     parser.add_argument('-lammy', default=0.0, type=float, required=False,
@@ -192,7 +187,7 @@ def setup_train():
 
     tr_data = ToxicityData(pos_seqs=args.tr_pos,
                            neg_seqs=args.tr_neg,
-                           pdbs_path=args.pdb_dir,
+                           pdbs_path=args.tr_pdb,
                            embedding_model=args.embedding_model,
                            max_d=args.d_max)
 
