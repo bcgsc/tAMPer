@@ -94,9 +94,9 @@ PROGRAM: train.py & predict.py
 
 USAGE(S): 
    
-  	######## TRAIN ##########
+   ######## TRAIN ##########
 
-	usage: train.py [-h] -tr_pos TR_POS -tr_neg TR_NEG -tr_pdb TR_PDB -val_pos VAL_POS -val_neg VAL_NEG -val_pdb VAL_PDB [-lr LR] [-hdim HDIM] [-gru_layers GRU_LAYERS] [-embedding_model EMBEDDING_MODEL]
+   usage: train.py [-h] -tr_pos TR_POS -tr_neg TR_NEG -tr_pdb TR_PDB -val_pos VAL_POS -val_neg VAL_NEG -val_pdb VAL_PDB [-lr LR] [-hdim HDIM] [-gru_layers GRU_LAYERS] [-embedding_model EMBEDDING_MODEL]
                 [-modality MODALITY] [-gnn_layers GNN_LAYERS] [-batch_size BATCH_SIZE] [-n_epochs N_EPOCHS] [-gard_acc GARD_ACC] [-weight_decay WEIGHT_DECAY] [-d_max D_MAX] [-lammy LAMMY]
                 [-monitor MONITOR] [-pre_chkpnt PRE_CHKPNT] [-chkpnt CHKPNT] [-log LOG]
 
