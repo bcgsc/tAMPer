@@ -86,6 +86,13 @@ The project contains the following files and directories:
 - wandb (optional)
 - loguru
 
+
+## Preparing inputs
+
+### Sequence
+
+### 3D structure
+
 ## Usage
 
 ```
