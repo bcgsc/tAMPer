@@ -156,34 +156,37 @@ USAGE(S):
                                                                               
 EXAMPLE(S):
 
-      python3 train.py -tr_pos ../tAMPer/data/sequences/tr_pos.faa \
-      -tr_neg ../tAMPer/data/sequences/tr_pos.faa \
-      -tr_pdb ../tAMPer/data/tr_structures/ \
-      -val_pos ../tAMPer/data/sequences/tr_pos.faa \
-      -val_neg ../tAMPer/data/sequences/tr_pos.faa \
-      -val_pdb ../tAMPer/data/val_structures/ \
-      -pre_chkpnt ../tAMPer/checkpoints/trained/pre_GNNs.pt \
-      -lr 0.0004 \
-      -hdim 64 \
-      -gru_layers 1 \
-      -gnn_layers 1 \
-      -d_max 12 \
-      -embedding_model t30 \
-      -batch_size 32 \
-      -n_epochs 100 \
-      -gard_acc 2 \
-      -weight_decay 1e-7 \
-      -lammy 0.2 \
-      -chkpnt ../tAMPer/checkpoints/chkpnt.pt \
-      -log ../tAMPer/logs/log.npy
+	python3 train.py -tr_pos ../tAMPer/data/sequences/tr_pos.faa \
+		-tr_neg ../tAMPer/data/sequences/tr_pos.faa \
+		-tr_pdb ../tAMPer/data/tr_structures/ \
+		-val_pos ../tAMPer/data/sequences/tr_pos.faa \
+		-val_neg ../tAMPer/data/sequences/tr_pos.faa \
+		-val_pdb ../tAMPer/data/val_structures/ \
+		-pre_chkpnt ../tAMPer/checkpoints/trained/pre_GNNs.pt \
+		-lr 0.0004 \
+		-hdim 64 \
+		-gru_layers 1 \
+		-gnn_layers 1 \
+		-d_max 12 \
+		-embedding_model t30 \
+		-batch_size 32 \
+		-n_epochs 100 \
+		-gard_acc 1 \
+		-weight_decay 1e-7 \
+		-lammy 0.2 \
+		-chkpnt ../tAMPer/checkpoints/chkpnt.pt \
+		-log ../tAMPer/logs/log.npy
       
-
-      python3 predict.py -seqs ../data/sequences/seqs.faa \
-      -pdbs ../tAMPer/data/structures/ \
-      -hdim 64 \
-      -embedding_model t12 \
-      -d_max 12 \
-	  -chkpnt ../tAMPer/checkpoints/trained/chkpnt.pt \
-	  -result_csv ../tAMPer/results/prediction.csv
+	python3 predict.py -seqs ../data/sequences/seqs.faa \
+		-pdbs ../tAMPer/data/structures/ \
+		-hdim 64 \
+		-embedding_model t12 \
+		-d_max 12 \
+		-chkpnt ../tAMPer/checkpoints/trained/chkpnt.pt \
+		-result_csv ../tAMPer/results/prediction.csv
       
 ```
+
+## Installation
+
+The implementation of portions of the GNNs convolutional layers and the input data pipeline were adapted from [Jing et al, ICLR 2021](https://github.com/drorlab/gvp) and [Baldassarre et al, Structural bioinformatics 2021](https://github.com/baldassarreFe/graphqa).
