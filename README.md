@@ -11,9 +11,8 @@
 - [Installation](#installation)
 - [Dependencies](#dependencies)
 - [Usage](#usage)
-- [Results](#results)
-- [Contributing](#contributing)
-- [License](#license)
+- [Acknowledgement](#acknowledgement)
+- [Citation](#Citation)
 
 ## About
 
@@ -189,3 +188,5 @@ EXAMPLE(S):
 ## Acknowledgement
 
 The implementation of portions of the GNNs convolutional layers and the input data pipeline were adapted from [Jing et al, ICLR 2021](https://github.com/drorlab/gvp) and [Baldassarre et al, Structural bioinformatics 2021](https://github.com/baldassarreFe/graphqa).
+
+## Citation
