@@ -30,6 +30,7 @@ def check_loss(model: torch.nn.Module,
                loss_func: dict,
                lammy: float = 0.1,
                threshold: float = 0.5):
+
     model.eval()
     loss_hist, ss_hist, tx_hist = list(), list(), list()
     sigmoid = Sigmoid()
@@ -110,55 +111,12 @@ def cal_metrics(y_preds: dict, meters: dict):
     return meters
 
 
-# only for predicting
-def ensemble_structures(model: torch.nn.Module, loader: DataLoader,
-                        device: torch.device, threshold: float = 0.5):
-    model.eval()
-
-    y_hat = OrderedDict()
-    scores = OrderedDict()
-    y_true = OrderedDict()
-
-    sigmoid = Sigmoid()
-
-    for _, graphs in enumerate(loader):
-        with torch.no_grad():
-
-            graphs = graphs.to(device)
-            embeddings = graphs.embeddings
-
-            preds = model(embeddings, graphs)
-
-            IDs = list(graphs.id)
-
-            for i in range(len(IDs)):
-                if IDs[i] in scores.keys():
-                    scores[IDs[i]].append(sigmoid(preds['tx'][i]).item())
-                else:
-                    scores[IDs[i]] = [sigmoid(preds['tx'][i]).item()]
-
-                y_true[IDs[i]] = graphs.y[i].item()
-
-    for key in scores.keys():
-        scores[key] = np.mean(scores[key])
-        y_hat[key] = 1.0 if scores[key] > threshold else 0.0
-
-    ids = list(scores.keys())
-
-    y_predictions = {
-        'score': np.array(list(scores.values())),
-        'y_hat': np.array(list(y_hat.values())),
-        'y': np.array(list(y_true.values()))
-    }
-    return ids, y_predictions
-
-
 def monitor_metric(log_dict: dict,
                    cur_model: torch.nn.Module,
                    chkpnt_addr: str,
                    patience: int,
                    metric: str):
-    
+
     cur_epoch = len(log_dict["val_metrics"]) - 1
 
     if 'loss' in metric:

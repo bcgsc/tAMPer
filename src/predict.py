@@ -5,10 +5,54 @@ import pandas as pd
 from loguru import logger
 from torch_geometric.loader import DataLoader
 from tAMPer import tAMPer
+from collections import OrderedDict
 from argparse import ArgumentParser
 import torch.nn.functional as F
 from dataset import ToxicityData
-from utils import set_seed, ensemble_structures, cal_metrics
+from utils import set_seed, cal_metrics
+
+
+def ensemble_structures(model: torch.nn.Module,
+                        loader: DataLoader,
+                        device: torch.device,
+                        threshold: float = 0.5):
+    model.eval()
+    sigmoid = torch.nn.Sigmoid()
+
+    y_hat = OrderedDict()
+    scores = OrderedDict()
+    sequences = {}
+
+    for _, graphs in enumerate(loader):
+        with torch.no_grad():
+
+            graphs = graphs.to(device)
+            embeddings = graphs.embeddings
+
+            preds = model(embeddings, graphs)
+
+            IDs = list(graphs.id)
+            seqs = list(graphs.seq)
+
+            for i in range(len(IDs)):
+                if IDs[i] in scores.keys():
+                    scores[IDs[i]].append(sigmoid(preds['tx'][i]).item())
+                else:
+                    scores[IDs[i]] = [sigmoid(preds['tx'][i]).item()]
+                sequences[IDs[i]] = seqs[i]
+
+    for key in scores.keys():
+        scores[key] = np.mean(scores[key])
+        y_hat[key] = 1.0 if scores[key] > threshold else 0.0
+
+    predictions = {
+        'id': list(scores.keys()),
+        'sequence': list(sequences.values()),
+        'score': list(scores.values()),
+        'prediction': list(y_hat.values())
+    }
+
+    return predictions
 
 
 def predict(model: torch.nn.Module,
@@ -18,24 +62,19 @@ def predict(model: torch.nn.Module,
             threshold: float,
             result_csv: str):
 
-    logger.info("Calculating metrics on test set")
+    logger.info("Predicting ...")
 
     model.to(device=device)
     model.load_state_dict(torch.load(checkpoint_folder, map_location=device)['model'])
 
-    ids, preds = ensemble_structures(model=model,
-                                     loader=data_loader,
-                                     device=device,
-                                     threshold=threshold)
+    predictions = ensemble_structures(model=model,
+                                      loader=data_loader,
+                                      device=device,
+                                      threshold=threshold)
 
-    # metrics = cal_metrics(preds, {})
-    # df = pd.DataFrame({key: [val] for key, val in metrics.items()})
-    # df.to_csv(result_csv, index=False)
-
-    preds['id'] = ids
-
-    out = pd.DataFrame.from_dict(preds)
+    out = pd.DataFrame.from_dict(predictions)
     out.to_csv(result_csv, index=False)
+    logger.info(f"Saved the predictions at {result_csv}")
 
 
 if __name__ == "__main__":
@@ -81,7 +120,7 @@ if __name__ == "__main__":
                         embedding_model=args.embedding_model,
                         max_d=args.d_max)
 
-    logger.info("Loading test datasets")
+    logger.info("Loading the dataset")
 
     test_dl = DataLoader(
         dataset=data,
