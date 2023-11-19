@@ -152,8 +152,7 @@ USAGE(S):
 		-chkpnt CHKPNT        address of .pt checkpoint to load the model
 		-result_csv RESULT_CSV
 		                    address of results (.csv) to be saved
-
-                                                                              
+                                                                             
 EXAMPLE(S):
 
 	python3 train.py -tr_pos ../tAMPer/data/sequences/tr_pos.faa \
@@ -168,7 +167,7 @@ EXAMPLE(S):
 		-gru_layers 1 \
 		-gnn_layers 1 \
 		-d_max 12 \
-		-embedding_model t30 \
+		-embedding_model t12 \
 		-batch_size 32 \
 		-n_epochs 100 \
 		-gard_acc 1 \
@@ -187,6 +186,6 @@ EXAMPLE(S):
       
 ```
 
-## Installation
+## Acknowledgement
 
 The implementation of portions of the GNNs convolutional layers and the input data pipeline were adapted from [Jing et al, ICLR 2021](https://github.com/drorlab/gvp) and [Baldassarre et al, Structural bioinformatics 2021](https://github.com/baldassarreFe/graphqa).
