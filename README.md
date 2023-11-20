@@ -99,19 +99,19 @@ Provide the peptide sequences in the FASTA format (.faa). If a peptide has C-ter
 MKALIKLPGNRVNGFGRIGR
 >peptide_2_AMD
 ALWKTLLKKVLKAAA
+>peptide_3
+GRRPLLLRAR
 ```
 
-### 3D structure
+### 3D structures
 
-Provide the directory where the ouput of the ColabFold (`.result.zip` files) is stored. To run ColabFold, please refer to https://github.com/sokrypton/ColabFold.
+Provide the directory where the ouput of the ColabFold (`.result.zip` files) is stored. To run ColabFold, please refer to https://github.com/sokrypton/ColabFold. The name of each file should match to its correspoding sequence in the fasta file.
 
 ```
 structures
 ├── peptide_1.result.zip
-├── peptide_2.result.zip
+├── peptide_2_AMD.result.zip
 ├── peptide_3.result.zip
-├── peptide_4.result.zip
-├── peptide_5.result.zip
 ...
 
 ```
