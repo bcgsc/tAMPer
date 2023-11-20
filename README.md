@@ -10,6 +10,7 @@
 - [Files](#files)
 - [Installation](#installation)
 - [Dependencies](#dependencies)
+- [Inputs](#inputs)
 - [Usage](#usage)
 - [Acknowledgement](#acknowledgement)
 - [Citation](#Citation)
@@ -87,15 +88,17 @@ The project contains the following files and directories:
 - loguru
 
 
-## Preparing inputs
+## Inputs
 
-Provide the protein sequence in the FASTA format (.faa).
+Provide the peptide sequences in the FASTA format (.faa). If a peptide has C-terminal amidation, add `_AMD` at the end of the peptide name.
 
 #### Example FASTA Format
 
 ```plaintext
 >peptide_1
 MKALIKLPGNRVNGFGRIGR
+>peptide_2_AMD
+ALWKTLLKKVLKAAA
 ```
 
 ### 3D structure
