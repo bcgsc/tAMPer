@@ -89,9 +89,29 @@ The project contains the following files and directories:
 
 ## Preparing inputs
 
-### Sequence
+Provide the protein sequence in the FASTA format (.faa).
+
+#### Example FASTA Format
+
+```plaintext
+>peptide_1
+MKALIKLPGNRVNGFGRIGR
+```
 
 ### 3D structure
+
+Provide the directory where the ouput of the ColabFold (`.result.zip` files) is stored. To run ColabFold, please refer to https://github.com/sokrypton/ColabFold.
+
+```
+structures
+├── peptide_1.result.zip
+├── peptide_2.result.zip
+├── peptide_3.result.zip
+├── peptide_4.result.zip
+├── peptide_5.result.zip
+...
+
+```
 
 ## Usage
 
