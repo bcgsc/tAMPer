@@ -7,47 +7,51 @@ from transformers import EsmForProteinFolding
 
 
 def read_fasta(fast_file: str):
-    data = {
-        'id': [],
-        'seq': [],
-        'pdb': []
-    }
+    
+    data = []
 
     with open(fast_file) as handle:
         for record in SeqIO.parse(handle, "fasta"):
-            data['id'].append(str(record.id))
-            data['seq'].append(str(record.seq))
+            data.append({
+                'id': str(record.id),
+                'seq': str(record.seq)
+            })
+
     return data
 
 
-def esm2fold(fasta_file: str,
+def esm2fold(my_data: list,
              result_file: str,
              device: torch.device = torch.device('cpu'),
-             batch_size: int = 16):
+             batch_size: int = 32):
 
-    my_data = read_fasta(fasta_file)
     esmfold = EsmForProteinFolding.from_pretrained("facebook/esmfold_v1")
     esmfold.to(device)
     esmfold.eval()
 
     ind = 0
-    n_seqs = len(my_data['seq'])
+    n_seqs = len(my_data)
+    pdbs = []
 
     while ind < n_seqs:
 
         logger.info(f'index: {ind}')
+        seqs = []
 
         if ind + batch_size > n_seqs:
             batch_size = n_seqs - ind
 
+        for seq_inf in my_data[ind:ind + batch_size]:
+            seqs.append(seq_inf['seq'])
+
         with torch.no_grad():
-            my_data['pdb'] += esmfold.infer_pdbs(my_data['seq'][ind:ind + batch_size])
+            pdbs += esmfold.infer_pdbs(seqs)
 
         ind += batch_size
 
-    for i in range(len(my_data['id'])):
-        with open(os.path.join(result_file, f"{my_data['id'][i]}.pdb"), 'w') as f:
-            f.write(my_data['pdb'][i])
+    for i in range(len(pdbs)):
+        with open(os.path.join(result_file, f"{my_data[i]['id']}.pdb"), 'w') as f:
+            f.write(pdbs[i])
             
     return
 
@@ -65,8 +69,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
+    data = read_fasta(args.seqs)
+
     esm2fold(
-        fasta_file=args.seqs,
+        my_data=data,
         result_file=args.out,
         device=device
     )

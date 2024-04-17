@@ -7,7 +7,10 @@ from peptideGraph import ProteinGraphBuilder
 from utils import read_fasta, merge
 import torch.nn.functional as F
 from embeddings import ESM2_Embeddings
+from ESMfolding import esm2fold
 from typing import Dict
+import warnings
+warnings.filterwarnings('ignore')
 
 
 class ToxicityData(Dataset):
@@ -17,10 +20,9 @@ class ToxicityData(Dataset):
                  neg_seqs: str = None,
                  pdbs_path: str = None,
                  max_d: int = 12,
-                 embedding_model: str = 't12',):
-
-        # if pdbs_path is equal to None, the corresponding structures should be predicted
-        # TODO: a script for predicting structures with COLABFOLD would be needed later on - There you go!
+                 device: torch.device = torch.device('cpu'),
+                 prediction_tool: str = 'ColabFold',
+                 embedding_model: str = 't12',) -> None:
 
         super().__init__()
         self.graphs = list()
@@ -35,18 +37,25 @@ class ToxicityData(Dataset):
             self.data = read_fasta(fasta_file=seqs)
 
         logger.info(f"Loading structures from {pdbs_path}")
-        self.add_structures()
+
+        self.add_structures(tool=prediction_tool,
+                            device=device)
+        
         logger.info(f"Number of structures: {len(self.graphs)}")
 
         logger.info(f"Generating sequence embeddings")
         self.load_embeddings()
 
-    def load_embeddings(self):
+    def load_embeddings(self,):
+
         seqs, ids = [], []
+
         for record in self.data:
             seqs.append(record['seq'])
             ids.append(record['id'])
+
         embeddings = self.esm.generate_embeddings(sequences=seqs, ids=ids)
+
         for graph in self.graphs:
             graph.embeddings = embeddings[graph.id]
 
@@ -56,15 +65,34 @@ class ToxicityData(Dataset):
     def get(self, idx: int) -> Data:
         return self.graphs[idx]
 
-    def add_structures(self):
-        for index in range(len(self.data)):
-            pdbs_zip = os.path.join(self.pdbs_path, f"{self.data[index]['id']}.result.zip")
-            with zipfile.ZipFile(pdbs_zip, "r") as zip_ref:
-                for file in zip_ref.namelist():
-                    if "_relaxed_" in file and file.endswith('.pdb'):
-                        pdb_file = zip_ref.extract(file, path=self.pdbs_path)
-                        self.graphs.append(self.graph_builder.build_graph(
-                            id=self.data[index]['id'],
-                            pdb_file=pdb_file,
-                            amd=self.data[index]['AMD'],
-                            label=self.data[index]['label']))
+    def add_structures(self,
+                       tool: str = 'ColabFold',
+                       device: torch.device = torch.device('cpu')) -> None:
+
+        if tool == 'ColabFold':
+
+            for index in range(len(self.data)):
+
+                pdbs_zip = os.path.join(self.pdbs_path, f"{self.data[index]['id']}.result.zip")
+
+                with zipfile.ZipFile(pdbs_zip, "r") as zip_ref:
+                    for file in zip_ref.namelist():
+                        if "_relaxed_" in file and file.endswith('.pdb'):
+
+                            pdb_file = zip_ref.extract(file, path=self.pdbs_path)
+                            self.graphs.append(self.graph_builder.build_graph(
+                                id=self.data[index]['id'],
+                                pdb_file=pdb_file,
+                                amd=self.data[index]['AMD'],
+                                label=self.data[index]['label']))
+        else:
+            esm2fold(my_data=self.data, result_file=self.pdbs_path, device=device)
+            
+            for index in range(len(self.data)):
+                pdb_file = os.path.join(self.pdbs_path, f"{self.data[index]['id']}.pdb")
+                self.graphs.append(self.graph_builder.build_graph(
+                                   id=self.data[index]['id'],
+                                   pdb_file=pdb_file,
+                                   amd=self.data[index]['AMD'],
+                                   label=self.data[index]['label']))
+

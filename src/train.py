@@ -132,6 +132,8 @@ def setup_train():
 
     parser.add_argument('-gnn_layers', default=1, type=int, required=False, help='number of GNNs Layers')
 
+    parser.add_argument('-pred_tool', default='ColabFold', type=str, required=False, help='Structure prediction tool to be used')
+
     parser.add_argument('-batch_size', default=32, type=int, required=False, help='batch size')
 
     parser.add_argument('-n_epochs', default=50, type=int, required=False, help='max number of epochs')
@@ -189,6 +191,7 @@ def setup_train():
                            neg_seqs=args.tr_neg,
                            pdbs_path=args.tr_pdb,
                            embedding_model=args.embedding_model,
+                           device=device,
                            max_d=args.d_max)
 
     logger.info('Validation set:')
@@ -197,6 +200,7 @@ def setup_train():
                             neg_seqs=args.val_neg,
                             pdbs_path=args.val_pdb,
                             embedding_model=args.embedding_model,
+                            device=device,
                             max_d=args.d_max)
 
     train_dl = DataLoader(
