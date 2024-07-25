@@ -220,3 +220,7 @@ EXAMPLE(S):
 The implementation of portions of the GNNs convolutional layers and the input data pipeline were adapted from [Jing et al, ICLR 2021](https://github.com/drorlab/gvp) and [Baldassarre et al, Structural bioinformatics 2021](https://github.com/baldassarreFe/graphqa).
 
 ## Citation
+
+If you use tAMPer in your research, please cite:
+
+Ebrahimikondori H, Sutherland D, Yanai A, Richter A, Salehi A, Li C, Coombe L, Kotkoff M, Warren RL, Birol I. 2024. Structure-aware deep learning model for peptide toxicity prediction. Protein Science. https://doi.org/10.1002/pro.5076.
