@@ -130,7 +130,7 @@ USAGE(S):
                 [-monitor MONITOR] [-pre_chkpnt PRE_CHKPNT] [-chkpnt CHKPNT] [-log LOG]
 
 
-   train.py script runs tAMPer for training.
+   train_tAMPer.py script runs tAMPer for training.
 
    options:
 		-h, --help            show this help message and exit
