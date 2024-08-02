@@ -105,7 +105,9 @@ GRRPLLLRAR
 
 ### 3D structures
 
-Provide the directory where the ouput of the ColabFold (`.result.zip` files) is stored. To run ColabFold, please refer to https://github.com/sokrypton/ColabFold. The name of each file should match to its correspoding sequence in the fasta file.
+Provide the directory where the ouput of the ColabFold (`.result.zip` files) is stored. To run ColabFold, please refer to https://github.com/sokrypton/ColabFold. The name of each file should match to its correspoding sequence in the fasta file. Also, add `zip_results` by ticking its corresponding box which is located within the advanced settings section of AlphaFold2.  
+
+If you are using localcolabfold (https://github.com/YoshitakaMo/localcolabfold) for structure predictions, please ensure to include the `--amber` flag for structure refinement (relaxation / energy minimization) and `--zip` flag which stores the results in a zip file (`.result.zip`) in order to utilize tAMPer. 
 
 ```
 structures
