@@ -36,9 +36,9 @@ The project contains the following files and directories:
 - `src/aminoacids.py`: Amino acid-related utility functions.
 - `src/dataset.py`: Dataset loading and preprocessing.
 - `src/peptideGraph.py`: Creating graph representations of peptides.
-- `src/predict.py`: Script for making toxicity predictions on new data.
+- `src/predict_tAMPer.py`: Script for making toxicity predictions on new data.
 - `src/tAMPer.py`: Main implementation of the tAMPer model.
-- `src/train.py`: Training pipeline.
+- `src/train_tAMPer.py`: Training pipeline.
 - `src/utils.py`: General utility functions.
 
 ## Installation
@@ -105,7 +105,9 @@ GRRPLLLRAR
 
 ### 3D structures
 
-Provide the directory where the ouput of the ColabFold (`.result.zip` files) is stored. To run ColabFold, please refer to https://github.com/sokrypton/ColabFold. The name of each file should match to its correspoding sequence in the fasta file.
+Provide the directory where the ouput of the ColabFold (`.result.zip` files) is stored. To run ColabFold, please refer to https://github.com/sokrypton/ColabFold. The name of each file should match to its correspoding sequence in the fasta file. Also, add `zip_results` by ticking its corresponding box which is located within the advanced settings section of AlphaFold2.  
+
+If you are using localcolabfold (https://github.com/YoshitakaMo/localcolabfold) for structure predictions, please ensure to include the `--amber` flag for structure refinement (relaxation / energy minimization) and `--zip` flag which stores the results in a zip file (`.result.zip`) in order to utilize tAMPer. 
 
 ```
 structures
@@ -119,18 +121,18 @@ structures
 ## Usage
 
 ```
-PROGRAM: train.py & predict.py
+PROGRAM: train_tAMPer.py & predict_tAMPer.py
 
 USAGE(S): 
    
    ######## TRAIN ##########
 
-   usage: train.py [-h] -tr_pos TR_POS -tr_neg TR_NEG -tr_pdb TR_PDB -val_pos VAL_POS -val_neg VAL_NEG -val_pdb VAL_PDB [-lr LR] [-hdim HDIM] [-gru_layers GRU_LAYERS] [-embedding_model EMBEDDING_MODEL]
+   usage: train_tAMPer.py [-h] -tr_pos TR_POS -tr_neg TR_NEG -tr_pdb TR_PDB -val_pos VAL_POS -val_neg VAL_NEG -val_pdb VAL_PDB [-lr LR] [-hdim HDIM] [-gru_layers GRU_LAYERS] [-embedding_model EMBEDDING_MODEL]
                 [-modality MODALITY] [-gnn_layers GNN_LAYERS] [-batch_size BATCH_SIZE] [-n_epochs N_EPOCHS] [-gard_acc GARD_ACC] [-weight_decay WEIGHT_DECAY] [-d_max D_MAX] [-lammy LAMMY]
                 [-monitor MONITOR] [-pre_chkpnt PRE_CHKPNT] [-chkpnt CHKPNT] [-log LOG]
 
 
-   train.py script runs tAMPer for training.
+   train_tAMPer.py script runs tAMPer for training.
 
    options:
 		-h, --help            show this help message and exit
@@ -166,9 +168,9 @@ USAGE(S):
 
    ######## PREDICT ##########
 
-   usage: predict.py [-h] -seqs SEQS -pdbs PDBS [-hdim HDIM] [-embedding_model EMBEDDING_MODEL] [-d_max D_MAX] [-chkpnt CHKPNT] [-result_csv RESULT_CSV]
+   usage: predict_tAMPer.py [-h] -seqs SEQS -pdbs PDBS [-hdim HDIM] [-embedding_model EMBEDDING_MODEL] [-d_max D_MAX] [-chkpnt CHKPNT] [-out OUT]
 
-   predict.py script runs tAMPer for prediction.
+   predict_tAMPer.py script runs tAMPer for prediction.
 
    options:
 		-h, --help            show this help message and exit
@@ -179,12 +181,12 @@ USAGE(S):
 		                    different variant of ESM2 embeddings: {t6, t12}
 		-d_max D_MAX          max distance to consider two connect two residues in the graph
 		-chkpnt CHKPNT        address of .pt checkpoint to load the model
-		-result_csv RESULT_CSV
-		                    address of results (.csv) to be saved
+		-out OUT
+		                    address of output folder
                                                                              
 EXAMPLE(S):
 
-	python3 train.py -tr_pos ../tAMPer/data/sequences/tr_pos.faa \
+	python3 train_tAMPer.py -tr_pos ../tAMPer/data/sequences/tr_pos.faa \
 		-tr_neg ../tAMPer/data/sequences/tr_pos.faa \
 		-tr_pdb ../tAMPer/data/tr_structures/ \
 		-val_pos ../tAMPer/data/sequences/tr_pos.faa \
@@ -205,13 +207,13 @@ EXAMPLE(S):
 		-chkpnt ../tAMPer/checkpoints/chkpnt.pt \
 		-log ../tAMPer/logs/log.npy
       
-	python3 predict.py -seqs ../data/sequences/seqs.faa \
+	python3 predict_tAMPer.py -seqs ../data/sequences/seqs.faa \
 		-pdbs ../tAMPer/data/structures/ \
 		-hdim 64 \
 		-embedding_model t12 \
 		-d_max 12 \
 		-chkpnt ../tAMPer/checkpoints/trained/chkpnt.pt \
-		-result_csv ../tAMPer/results/prediction.csv
+		-out ../tAMPer/results/prediction.csv
       
 ```
 
