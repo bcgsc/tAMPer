@@ -186,7 +186,7 @@ USAGE(S):
                                                                              
 EXAMPLE(S):
 
-	python3 train_tAMPer.py -tr_pos ../tAMPer/data/sequences/tr_pos.faa \
+	train_tAMPer.py -tr_pos ../tAMPer/data/sequences/tr_pos.faa \
 		-tr_neg ../tAMPer/data/sequences/tr_pos.faa \
 		-tr_pdb ../tAMPer/data/tr_structures/ \
 		-val_pos ../tAMPer/data/sequences/tr_pos.faa \
@@ -207,7 +207,7 @@ EXAMPLE(S):
 		-chkpnt ../tAMPer/checkpoints/chkpnt.pt \
 		-log ../tAMPer/logs/log.npy
       
-	python3 predict_tAMPer.py -seqs ../data/sequences/seqs.faa \
+	predict_tAMPer.py -seqs ../data/sequences/seqs.faa \
 		-pdbs ../tAMPer/data/structures/ \
 		-hdim 64 \
 		-embedding_model t12 \
