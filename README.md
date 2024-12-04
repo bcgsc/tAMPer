@@ -88,17 +88,16 @@ The project contains the following files and directories:
 - [DSSP](https://ssbio.readthedocs.io/en/latest/instructions/dssp.html)
 - [fair-esm](https://github.com/facebookresearch/esm) (>= 2.0.0)
 - [libgcc-ng](https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html) (>=11.2.0)
-- loguru
-- matplotlib
-- numpy
-- pandas
+- [loguru](https://loguru.readthedocs.io/en/stable/index.html)
+- [matplotlib](https://matplotlib.org/)
+- [numpy](https://numpy.org/)
+- [pandas](https://pandas.pydata.org/)
 - Python (>= 3.9)
 - [Pytorch](https://pytorch.org/get-started/previous-versions/) (>= 1.13.1)
 - [torch-geometric](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html)
 - torch-cluster
 - torch-scatter
-- transformers
-- wandb (optional)
+- [Transformers](https://huggingface.co/docs/transformers/en/installation)
 
 ## Inputs
 
