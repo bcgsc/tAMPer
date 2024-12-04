@@ -43,6 +43,16 @@ The project contains the following files and directories:
 
 ## Installation
 
+### Using the Bioconda Channel on Conda (recommended but not required):
+
+1. Create the environment with tAMPer installed:
+
+	```bash
+	conda install -c bioconda tamper
+	```
+
+### Using the Latest Github Version:
+
 1. Clone this repository:
 
    ```bash
@@ -53,15 +63,15 @@ The project contains the following files and directories:
    cd tAMPer
    ```
 
-### Conda
+#### Conda
 
-3. Create a conda environment (optional but recommended):
+3. Create a conda environment (recommended but not required):
    ```bash
    conda env create -f environment.yml
    conda activate tAMPer
    ```
 
-### Pip
+#### Pip
 
 3. Create a python virtual environment (make sure python3 is available/loaded):
    ```bash
@@ -71,7 +81,7 @@ The project contains the following files and directories:
    source ENV_ADDRESS/bin/activate
    pip install -r requirements.txt
    ```
-
+ 
 ## Dependencies
 
 - [DSSP](https://ssbio.readthedocs.io/en/latest/instructions/dssp.html)
@@ -127,12 +137,12 @@ USAGE(S):
    
    ######## TRAIN ##########
 
-   usage: train_tAMPer.py [-h] -tr_pos TR_POS -tr_neg TR_NEG -tr_pdb TR_PDB -val_pos VAL_POS -val_neg VAL_NEG -val_pdb VAL_PDB [-lr LR] [-hdim HDIM] [-gru_layers GRU_LAYERS] [-embedding_model EMBEDDING_MODEL]
+   usage: train_tAMPer [-h] -tr_pos TR_POS -tr_neg TR_NEG -tr_pdb TR_PDB -val_pos VAL_POS -val_neg VAL_NEG -val_pdb VAL_PDB [-lr LR] [-hdim HDIM] [-gru_layers GRU_LAYERS] [-embedding_model EMBEDDING_MODEL]
                 [-modality MODALITY] [-gnn_layers GNN_LAYERS] [-batch_size BATCH_SIZE] [-n_epochs N_EPOCHS] [-gard_acc GARD_ACC] [-weight_decay WEIGHT_DECAY] [-d_max D_MAX] [-lammy LAMMY]
                 [-monitor MONITOR] [-pre_chkpnt PRE_CHKPNT] [-chkpnt CHKPNT] [-log LOG]
 
 
-   train_tAMPer.py script runs tAMPer for training.
+   train_tAMPer script runs tAMPer for training.
 
    options:
 		-h, --help            show this help message and exit
@@ -168,9 +178,9 @@ USAGE(S):
 
    ######## PREDICT ##########
 
-   usage: predict_tAMPer.py [-h] -seqs SEQS -pdbs PDBS [-hdim HDIM] [-embedding_model EMBEDDING_MODEL] [-d_max D_MAX] [-chkpnt CHKPNT] [-out OUT]
+   usage: predict_tAMPer [-h] -seqs SEQS -pdbs PDBS [-hdim HDIM] [-embedding_model EMBEDDING_MODEL] [-d_max D_MAX] [-chkpnt CHKPNT] [-out OUT]
 
-   predict_tAMPer.py script runs tAMPer for prediction.
+   predict_tAMPer script runs tAMPer for prediction.
 
    options:
 		-h, --help            show this help message and exit
@@ -186,7 +196,7 @@ USAGE(S):
                                                                              
 EXAMPLE(S):
 
-	python3 train_tAMPer.py -tr_pos ../tAMPer/data/sequences/tr_pos.faa \
+	train_tAMPer -tr_pos ../tAMPer/data/sequences/tr_pos.faa \
 		-tr_neg ../tAMPer/data/sequences/tr_pos.faa \
 		-tr_pdb ../tAMPer/data/tr_structures/ \
 		-val_pos ../tAMPer/data/sequences/tr_pos.faa \
@@ -207,14 +217,13 @@ EXAMPLE(S):
 		-chkpnt ../tAMPer/checkpoints/chkpnt.pt \
 		-log ../tAMPer/logs/log.npy
       
-	python3 predict_tAMPer.py -seqs ../data/sequences/seqs.faa \
+	predict_tAMPer -seqs ../data/sequences/seqs.faa \
 		-pdbs ../tAMPer/data/structures/ \
 		-hdim 64 \
 		-embedding_model t12 \
 		-d_max 12 \
 		-chkpnt ../tAMPer/checkpoints/trained/chkpnt.pt \
 		-out ../tAMPer/results/prediction.csv
-      
 ```
 
 ## Acknowledgement

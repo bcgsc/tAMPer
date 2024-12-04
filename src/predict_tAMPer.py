@@ -114,7 +114,7 @@ def predict(model: torch.nn.Module,
 
 if __name__ == "__main__":
 
-    parser = ArgumentParser(description='predict.py script runs tAMPer for prediction.')
+    parser = ArgumentParser(description='predict_tAMPer script runs tAMPer for prediction.')
 
     parser.add_argument('-seqs', type=str,
                         required=True, help='sequences fasta file for prediction (.fasta)')

@@ -98,7 +98,7 @@ def train(model: tAMPer,
 
 
 def setup_train():
-    parser = ArgumentParser(description='train.py script runs tAMPer for training.')
+    parser = ArgumentParser(description='train_tAMPer script runs tAMPer for training.')
     # data
     parser.add_argument('-tr_pos', type=str,
                         required=True, help='training toxic sequences fasta file (.fasta)')
