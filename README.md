@@ -48,7 +48,7 @@ The project contains the following files and directories:
 1. Create the environment with tAMPer installed:
 
 	```bash
-	conda install -c bioconda tamper
+	conda create -n tAMPer -c bioconda tamper
 	```
 
 ### Using the Latest Github Version:
