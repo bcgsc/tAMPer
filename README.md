@@ -84,19 +84,21 @@ The project contains the following files and directories:
  
 ## Dependencies
 
+- [Biopython](https://biopython.org/)
 - [DSSP](https://ssbio.readthedocs.io/en/latest/instructions/dssp.html)
-- python (>= 3.9)
-- [pytorch](https://pytorch.org/get-started/previous-versions/) (>= 1.13.1)
+- [fair-esm](https://github.com/facebookresearch/esm) (>= 2.0.0)
+- [libgcc-ng](https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html) (>=11.2.0)
+- loguru
+- matplotlib
+- numpy
+- pandas
+- Python (>= 3.9)
+- [Pytorch](https://pytorch.org/get-started/previous-versions/) (>= 1.13.1)
 - [torch-geometric](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html)
 - torch-cluster
 - torch-scatter
-- [fair-esm](https://github.com/facebookresearch/esm) (>= 2.0.0)
-- numpy
-- pandas
-- biopython
+- transformers
 - wandb (optional)
-- loguru
-
 
 ## Inputs
 
