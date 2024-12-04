@@ -100,22 +100,22 @@ def train(model: tAMPer,
 def setup_train():
     parser = ArgumentParser(description='train.py script runs tAMPer for training.')
     # data
-    parser.add_argument('-tr_pos', default=f'{os.getcwd()}/data/sequences/tr_pos.faa', type=str,
+    parser.add_argument('-tr_pos', type=str,
                         required=True, help='training toxic sequences fasta file (.fasta)')
 
-    parser.add_argument('-tr_neg', default=f'{os.getcwd()}/data/sequences/tr_neg.faa', type=str,
+    parser.add_argument('-tr_neg', type=str,
                         required=True, help='training non-toxic sequences fasta file (.fasta)')
 
-    parser.add_argument('-tr_pdb', default=f'{os.getcwd()}/data/structures/', type=str,
+    parser.add_argument('-tr_pdb', type=str,
                         required=True, help='address directory of train structures')
 
-    parser.add_argument('-val_pos', default=f'{os.getcwd()}/data/sequences/val_pos.faa',
+    parser.add_argument('-val_pos', 
                         type=str, required=True, help='validation toxic sequences fasta file (.fasta)')
 
-    parser.add_argument('-val_neg', default=f'{os.getcwd()}/data/sequences/val_neg.faa',
+    parser.add_argument('-val_neg',
                         type=str, required=True, help='validation non-toxic sequences fasta file (.fasta)')
 
-    parser.add_argument('-val_pdb', default=f'{os.getcwd()}/data/structures/', type=str,
+    parser.add_argument('-val_pdb', type=str,
                         required=True, help='address directory of val structures')
     # model configs
     parser.add_argument('-lr', default=0.0004, type=float, required=False, help='learning rate')
@@ -155,10 +155,10 @@ def setup_train():
     parser.add_argument('-pre_chkpnt', default='', type=str, required=False,
                         help='address of pre-trained GNNs')
 
-    parser.add_argument('-chkpnt', default=f'{os.getcwd()}/checkpoints/chkpnt.pt',
+    parser.add_argument('-chkpnt', default=f'{os.getcwd()}/chkpnt.pt',
                         type=str, required=False, help='address to where trained model be stored')
 
-    parser.add_argument('-log', default=f'{os.getcwd()}/logs/log.npy', type=str, required=False,
+    parser.add_argument('-log', default=f'{os.getcwd()}/log.npy', type=str, required=False,
                         help='address to where log file be stored')
 
     args = parser.parse_args()

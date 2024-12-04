@@ -116,10 +116,10 @@ if __name__ == "__main__":
 
     parser = ArgumentParser(description='predict.py script runs tAMPer for prediction.')
 
-    parser.add_argument('-seqs', default=f'{os.getcwd()}/data/sequences/seqs.faa', type=str,
+    parser.add_argument('-seqs', type=str,
                         required=True, help='sequences fasta file for prediction (.fasta)')
 
-    parser.add_argument('-pdbs', default=f'{os.getcwd()}/data/structures/', type=str,
+    parser.add_argument('-pdbs', type=str,
                         required=True, help='address directory of train structures')
 
     parser.add_argument('-hdim', default=64, type=int, required=False,
@@ -141,10 +141,10 @@ if __name__ == "__main__":
     parser.add_argument('-d_max', default=12, type=int, required=False,
                         help='max distance to consider two connect two residues in the graph')
 
-    parser.add_argument('-chkpnt', default=f'{os.getcwd()}/checkpoints/trained/chkpnt.pt',
+    parser.add_argument('-chkpnt', default=f'{os.path.dirname(os.path.dirname(os.path.realpath(__file__)))}/checkpoints/trained/chkpnt.pt',
                         type=str, required=False, help='address of .pt checkpoint to load the model')
 
-    parser.add_argument('-out', default=f'{os.getcwd()}/results/', type=str,
+    parser.add_argument('-out', default=f'{os.getcwd()}', type=str,
                         required=False, help='address of output folder')
 
     args = parser.parse_args()
